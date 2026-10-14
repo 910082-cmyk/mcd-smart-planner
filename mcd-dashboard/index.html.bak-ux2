@@ -1,0 +1,1395 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>麦麦智配 · 热量与消费决策助手</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20viewBox%3D%220%200%2024%2024%22%20width%3D%2232%22%20height%3D%2232%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Crect%20width%3D%2224%22%20height%3D%2224%22%20rx%3D%225.5%22%20fill%3D%22%23DA291C%22/%3E%3Cpath%20d%3D%22M17.243%203.006c2.066%200%203.742%208.714%203.742%2019.478H24c0-11.588-3.042-20.968-6.766-20.968-2.127%200-4.007%202.81-5.248%207.227-1.241-4.416-3.121-7.227-5.231-7.227C3.031%201.516%200%2010.888%200%2022.476h3.014c0-10.763%201.658-19.47%203.724-19.47%202.066%200%203.741%208.05%203.741%2017.98h2.997c0-9.93%201.684-17.98%203.75-17.98Z%22%20fill%3D%22%23FFC72C%22%20transform%3D%22translate%2812%2C12%29%20scale%280.82%29%20translate%28-12%2C-12%29%22/%3E%3C/svg%3E">
+<style>
+:root{
+  --mc-yellow:#FFC72C; --mc-red:#DA291C; --mc-yellow-d:#F0A800; --mc-red-d:#B01F16;
+  --ink:#2E1B0D; --ink2:#6B5340; --ink3:#857260;
+  --bg:#FFFAF3; --card:#fff; --card2:#FFFDF9; --card-h:#FFF6E4; --line:#F5E9D8; --line2:#EEDFC8;
+  --gold-bg:#FFF6DD; --gold-bd:#F7E2A8; --gold-tx:#8A5B18; --code-bg:rgba(0,0,0,.05);
+  --stage-grad:linear-gradient(170deg,#FFFCF5 0%,#FFF4DF 100%);
+  --ok:#0B7A4B; --ok-bg:#E3F6EC; --warn:#B25A00; --warn-bg:#FFF4E3; --err:#C6231A; --err-bg:#FDECEA;
+  --r:18px; --sh:0 2px 4px rgba(58,32,16,.04),0 12px 30px rgba(58,32,16,.07);
+}
+[data-theme="dark"]{
+  --ink:#F3E7D5; --ink2:#CBB79C; --ink3:#A59077;
+  --bg:#17110B; --card:#221A12; --card2:#2A2117; --card-h:#332818; --line:#3D3122; --line2:#4C3D29;
+  --gold-bg:#3A2C10; --gold-bd:#57421C; --gold-tx:#FFD98A; --code-bg:rgba(255,255,255,.09);
+  --stage-grad:linear-gradient(170deg,#2B2114 0%,#211A10 100%);
+  --ok:#4ED997; --ok-bg:#0F2B1E; --warn:#FFB35C; --warn-bg:#33230C; --err:#FF6B5E; --err-bg:#3A1712;
+  --sh:0 2px 4px rgba(0,0,0,.32),0 12px 30px rgba(0,0,0,.5);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  background:var(--bg);color:var(--ink);line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+.wrap{max-width:1280px;margin:0 auto;padding:0 20px 120px}
+
+/* ================= 品牌区 ================= */
+#hero{position:relative;height:290px;background:var(--mc-red);overflow:hidden;box-shadow:0 6px 26px rgba(218,41,28,.3)}
+#gl{position:absolute;inset:0;width:100%;height:100%;display:block}
+.hero-in{position:absolute;inset:0;z-index:2;pointer-events:none;max-width:1280px;margin:0 auto;
+  padding:30px 20px;display:flex;flex-direction:column;justify-content:center}
+.brand{display:flex;align-items:center;gap:13px;margin-bottom:15px}
+.brand img{width:44px;height:44px;flex-shrink:0;display:block}
+.brand-tx h1{font-size:30px;font-weight:800;color:#fff;letter-spacing:-1.1px;line-height:1.1;text-shadow:0 2px 12px rgba(0,0,0,.28)}
+.brand-tx p{font-size:13.5px;color:#FFE9D9;margin-top:3px}
+.hero-sub{font-size:14px;color:#FFF5E6;margin:0 0 19px 57px;max-width:560px;line-height:1.65}
+.hero-stats{display:flex;gap:30px;margin-left:57px;flex-wrap:wrap}
+.hstv{font-size:25px;font-weight:800;color:#fff;line-height:1}
+.hstl{font-size:11.5px;color:#FFE3B0;margin-top:4px}
+.hero-tag{position:absolute;left:20px;bottom:14px;z-index:3;display:flex;gap:8px;flex-wrap:wrap}
+.ht{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.32);padding:4px 11px;border-radius:999px;font-size:11px;color:#fff}
+/* WebGL 不可用时的静态降级 */
+.hero-fb{position:absolute;right:70px;top:50%;transform:translateY(-50%);z-index:1;opacity:.95}
+.hero-fb img{width:150px;height:150px;display:block}
+
+/* ================= 导航（图标 + 标签） ================= */
+nav{display:flex;gap:4px;background:var(--card);border-radius:var(--r);padding:6px;box-shadow:var(--sh);
+  margin:-16px 0 22px;position:relative;z-index:6;overflow-x:auto}
+nav button{flex:1;min-width:max-content;display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  background:none;border:0;padding:12px 13px;border-radius:13px;
+  font-family:inherit;font-size:13.5px;color:var(--ink2);cursor:pointer;font-weight:600;transition:.32s;white-space:nowrap}
+nav button svg{width:17px;height:17px;flex-shrink:0}
+nav button:hover{background:var(--bg)}
+nav button.on{background:var(--mc-red);color:#fff;box-shadow:0 4px 14px rgba(218,41,28,.32)}
+nav button.on svg{stroke:#fff}
+
+/* ================= 全局悬浮结算条 ================= */
+#cartbar{position:fixed;left:50%;transform:translateX(-50%);bottom:22px;z-index:45;display:none;
+  align-items:center;gap:14px;width:min(680px,calc(100% - 24px));background:var(--mc-yellow);
+  border-radius:18px;padding:12px 14px 12px 18px;box-shadow:0 10px 30px rgba(255,199,44,.42)}
+#cartbar.show{display:flex}
+#cartbar.bump{animation:bump .45s cubic-bezier(.22,.61,.36,1)}
+@keyframes bump{0%{transform:translateX(-50%) scale(1)}35%{transform:translateX(-50%) scale(1.05)}100%{transform:translateX(-50%) scale(1)}}
+.cb-l{flex:1;min-width:0}
+.cb-n{font-size:13px;font-weight:800;color:#4A3000}
+.cb-s{font-size:11px;color:#8A5B18;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cb-v{font-size:21px;font-weight:800;color:#3A2010;line-height:1;white-space:nowrap}
+#cartbar .btn{padding:11px 18px;font-size:13px;box-shadow:0 3px 10px rgba(218,41,28,.3)}
+
+/* ================= 主题切换 ================= */
+#themeBtn{position:fixed;right:16px;top:16px;z-index:70;width:42px;height:42px;border-radius:50%;
+  border:1.5px solid var(--line);background:var(--card);color:var(--ink2);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;box-shadow:var(--sh);transition:.25s}
+#themeBtn:hover{color:var(--mc-red);border-color:var(--mc-yellow)}
+#themeBtn svg{width:20px;height:20px;display:block}
+#themeBtn:active{transform:scale(.92)}
+
+/* ================= 分段控件（取餐 / 出行方式） ================= */
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.seg button{display:inline-flex;align-items:center;gap:7px;background:var(--card2);border:1.5px solid var(--line);
+  border-radius:12px;padding:11px 14px;font-family:inherit;font-size:13px;font-weight:700;color:var(--ink2);
+  cursor:pointer;transition:.25s}
+.seg button svg{width:18px;height:18px;display:block;flex-shrink:0}
+.seg button:hover{border-color:var(--mc-yellow);background:var(--card)}
+.seg button.on{background:var(--mc-yellow);border-color:var(--mc-yellow);color:#4A3000}
+.seg button.on svg{stroke:#4A3000}
+
+/* ================= 票券形优惠券 ================= */
+.cp{position:relative;display:inline-flex;align-items:center;gap:8px;padding:9px 15px;font-size:12.5px;
+  font-weight:700;color:var(--ink2);background:var(--card);border:1.5px solid var(--line);border-radius:7px}
+.cp::before,.cp::after{content:"";position:absolute;top:50%;width:11px;height:11px;border-radius:50%;
+  background:var(--card);border:1.5px solid var(--line);transform:translateY(-50%)}
+.cp::before{left:-7px;clip-path:inset(0 0 0 45%)}
+.cp::after{right:-7px;clip-path:inset(0 45% 0 0)}
+.cp.a{background:var(--gold-bg);border-color:var(--gold-bd);color:var(--gold-tx)}
+.cp.a::before,.cp.a::after{background:var(--gold-bg);border-color:var(--gold-bd)}
+.tab{display:none;animation:fade .5s ease}
+.tab.on{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+
+.card{background:var(--card);border-radius:var(--r);padding:24px;box-shadow:var(--sh);margin-bottom:18px}
+.ct{font-size:18px;font-weight:800;margin-bottom:4px;display:flex;align-items:center;gap:9px}
+.ct::before{content:"";width:4.5px;height:19px;background:var(--mc-yellow);border-radius:2px;flex-shrink:0}
+.cd{font-size:12.5px;color:var(--ink3);margin-bottom:18px;padding-left:14px}
+
+/* ================= 精选餐品面板 ================= */
+.stage{background:var(--stage-grad);border:1.5px solid var(--line);
+  border-radius:var(--r);overflow:hidden;margin-bottom:16px;position:relative}
+.stage-badge{position:absolute;left:16px;top:14px;font-size:11.5px;font-weight:800;color:#8A5B18;
+  background:rgba(255,255,255,.9);padding:5px 12px;border-radius:999px;border:1px solid #F7E2A8;
+  pointer-events:none;z-index:3;letter-spacing:.5px}
+
+/* ================= 带图列表（配餐方案 / 购物车） ================= */
+.ilist{display:flex;flex-direction:column;border:1.5px solid var(--line);border-radius:13px;
+  overflow:hidden;margin-top:13px;background:var(--card)}
+.ilist-hd{display:flex;align-items:center;gap:13px;padding:8px 14px;background:var(--bg);
+  font-size:11px;font-weight:800;color:var(--ink2);border-bottom:1.5px solid var(--line);letter-spacing:.5px}
+.ilist-hd .sp{flex:1}
+.irow{display:flex;align-items:center;gap:13px;padding:9px 14px;background:var(--card2);transition:background .3s}
+.irow+.irow{border-top:1px solid var(--line)}
+.irow:hover{background:var(--card-h)}
+.iw{width:64px;height:48px;border-radius:10px;background:var(--card);flex-shrink:0;border:1px solid var(--line);
+  position:relative;overflow:hidden}
+.iw .ifb{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  pointer-events:none;line-height:1}
+.iw .ifb svg{width:22px;height:22px;display:block}
+.iw img{position:relative;z-index:1;width:100%;height:100%;object-fit:contain;display:block}
+.inm{flex:1;min-width:0;font-size:13.5px;font-weight:700;line-height:1.35}
+.ikl{font-size:13px;font-weight:800;color:var(--mc-red);white-space:nowrap;min-width:76px;text-align:right}
+.ipr{font-size:13.5px;font-weight:800;white-space:nowrap;min-width:56px;text-align:right}
+.iq{width:62px;padding:7px 6px;font-size:13px;text-align:center;border:2px solid var(--line);
+  border-radius:9px;background:var(--card);font-family:inherit;transition:.3s}
+.iq:focus{outline:none;border-color:var(--mc-yellow);box-shadow:0 0 0 4px rgba(255,199,44,.16)}
+@media (max-width:560px){
+  .iw{width:52px;height:39px}
+  .iw .ifb{font-size:16px}
+  .irow,.ilist-hd{gap:10px;padding:8px 11px}
+  .ikl{min-width:62px;font-size:12px}
+  .ipr{min-width:48px;font-size:12.5px}
+  .iq{width:52px}
+}
+
+/* 聚焦面板 */
+.focus{display:flex;gap:26px;padding:46px 28px 26px;background:transparent;align-items:center;flex-wrap:wrap}
+.focus-img{width:210px;height:210px;border-radius:18px;background:var(--card);flex-shrink:0;overflow:hidden;
+  border:1.5px solid var(--line);position:relative;box-shadow:0 10px 26px rgba(138,91,24,.14)}
+.focus-img img{width:100%;height:100%;object-fit:contain;transition:transform 1.1s cubic-bezier(.22,.61,.36,1)}
+.focus-img:hover img{transform:scale(1.06)}
+.focus-img.off::after{content:'暂无图片';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--ink3)}
+.focus-b{flex:1;min-width:220px}
+.focus-n{font-size:19px;font-weight:800;margin-bottom:9px;line-height:1.3}
+.focus-p{display:flex;align-items:baseline;gap:10px;margin-bottom:11px;flex-wrap:wrap}
+.focus-pv{font-size:31px;font-weight:800;color:var(--mc-red);line-height:1}
+.focus-po{font-size:13px;color:var(--ink3);text-decoration:line-through}
+.focus-sv{font-size:12px;font-weight:800;color:#fff;background:var(--mc-red);padding:2px 8px;border-radius:6px}
+.focus-m{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.fm{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;font-weight:700;color:var(--ink2);background:var(--bg);padding:5px 10px;border-radius:8px;border:1px solid var(--line)}
+.fm.k{color:var(--mc-red);border-color:#FBD6D2;background:var(--err-bg)}
+.focus-t{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:14px}
+.fg{font-size:11px;background:var(--bg);color:var(--ink2);padding:4px 9px;border-radius:6px;border:1px solid var(--line)}
+.fg.hot{background:var(--err-bg);color:var(--err);border-color:#FBD6D2;font-weight:700}
+.fg.gold{background:var(--gold-bg);color:var(--gold-tx);border-color:var(--gold-bd);font-weight:700}
+.nocal{color:var(--ink3);font-size:11px;font-style:italic;font-weight:400}
+
+/* 缩略图条 */
+.strip{background:var(--card);border:1.5px solid var(--line);border-radius:var(--r);padding:14px;margin-bottom:16px}
+.strip-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:11px;gap:10px;flex-wrap:wrap}
+.strip-t{font-size:12.5px;color:var(--ink2);font-weight:700}
+.strip-c{font-size:11.5px;color:var(--ink3)}
+.strip-l{display:flex;gap:9px;overflow-x:auto;padding-bottom:6px}
+.strip-l::-webkit-scrollbar{height:6px}
+.strip-l::-webkit-scrollbar-thumb{background:var(--line2);border-radius:3px}
+.tile{flex-shrink:0;width:88px;cursor:pointer;border:2px solid var(--line);border-radius:11px;overflow:hidden;
+  background:var(--card);transition:.4s cubic-bezier(.22,.61,.36,1);position:relative;padding:0;font-family:inherit}
+.tile:hover{border-color:var(--mc-yellow);transform:translateY(-2px)}
+.tile.on{border-color:var(--mc-red);box-shadow:0 6px 18px rgba(218,41,28,.26);transform:translateY(-2px)}
+.tile img{width:100%;height:66px;object-fit:contain;display:block;background:var(--card)}
+.tile-n{font-size:10.5px;padding:5px 4px;line-height:1.3;color:var(--ink2);font-weight:600;height:32px;overflow:hidden;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.tile.on .tile-n{color:var(--mc-red);font-weight:800}
+.tile-idx{position:absolute;left:4px;top:4px;font-size:9px;font-weight:800;color:#fff;background:rgba(0,0,0,.42);border-radius:4px;padding:1px 4px}
+
+/* 搜索与分类 */
+.sbox{position:relative;margin-bottom:14px}
+input[type=text],input[type=number],select{width:100%;font-family:inherit;font-size:16px;padding:14px 16px;
+  border:2px solid var(--line);border-radius:13px;background:var(--card2);color:var(--ink);transition:.3s}
+input[type=text]:focus,input[type=number]:focus,select:focus{outline:none;border-color:var(--mc-yellow);background:var(--card);box-shadow:0 0 0 4px rgba(255,199,44,.16)}
+.sbox input{padding-right:46px}
+.sico{position:absolute;right:16px;top:50%;transform:translateY(-50%);color:var(--mc-yellow-d);
+  pointer-events:none;display:flex;align-items:center}
+.sico svg{width:19px;height:19px;display:block}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{background:var(--card2);border:1.5px solid var(--line);border-radius:999px;padding:8px 15px;font-size:13px;
+  cursor:pointer;color:var(--ink2);transition:.3s;font-family:inherit;font-weight:600}
+.chip:hover{border-color:var(--mc-yellow);background:var(--card)}
+.chip.on{background:var(--mc-yellow);border-color:var(--mc-yellow);color:#4A3000}
+.chip .n{color:var(--ink3);font-weight:500;margin-left:3px}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(228px,1fr));gap:16px}
+.mi{background:var(--card);border:1.5px solid var(--line);border-radius:15px;overflow:hidden;transition:.5s cubic-bezier(.22,.61,.36,1);display:flex;flex-direction:column}
+.mi:hover{border-color:var(--mc-yellow);transform:translateY(-3px);box-shadow:0 14px 32px rgba(255,199,44,.26)}
+.mimg{aspect-ratio:4/3;height:auto;min-height:132px;background:var(--card);position:relative;overflow:hidden}
+.mimg img{width:100%;height:100%;object-fit:contain;display:block;position:relative;z-index:1;
+  transition:transform 1s cubic-bezier(.22,.61,.36,1)}
+.mimg-fb{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  background:var(--card)}
+.mimg-fb svg{width:62px;height:62px;display:block}
+.mi:hover .mimg img{transform:scale(1.04)}
+.mflag{position:absolute;left:9px;top:9px;background:var(--mc-red);color:#fff;font-size:10.5px;font-weight:800;padding:3px 8px;border-radius:6px;z-index:2}
+.moff{position:absolute;right:9px;top:9px;background:rgba(255,255,255,.94);color:var(--mc-red);font-size:11px;font-weight:800;padding:3px 8px;border-radius:6px;z-index:2}
+.mbody{padding:13px;flex:1;display:flex;flex-direction:column}
+.mn{font-size:14px;font-weight:700;line-height:1.35;margin-bottom:8px;min-height:38px;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.mp{display:flex;align-items:baseline;gap:7px;margin-bottom:9px}
+.mpv{font-size:19px;font-weight:800;color:var(--mc-red)}
+.mpo{font-size:11.5px;color:var(--ink3);text-decoration:line-through}
+.mkc{font-size:11.5px;font-weight:700;color:var(--ink2);background:var(--bg);padding:3px 8px;border-radius:6px;margin-bottom:9px;width:fit-content}
+.madd{margin-top:auto;background:var(--mc-yellow);border:0;border-radius:9px;padding:9px;font-family:inherit;font-size:12.5px;font-weight:800;color:#4A3000;cursor:pointer;transition:.35s}
+.madd:hover{background:var(--mc-yellow-d);transform:scale(1.015)}
+
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th{text-align:left;padding:11px 12px;background:var(--bg);font-weight:800;font-size:12px;color:var(--ink2);border-bottom:2px solid var(--line2);white-space:nowrap}
+td{padding:12px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:0}
+.tw{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.note{padding:14px 16px;border-radius:11px;font-size:12.5px;line-height:1.7;margin:14px 0}
+.note.w{background:var(--warn-bg);border-left:4px solid var(--warn);color:#7A3E00}
+.note.e{background:var(--err-bg);border-left:4px solid var(--err);color:#8C1A14}
+.note.o{background:var(--ok-bg);border-left:4px solid var(--ok);color:#0A5537}
+.note code,code{background:var(--code-bg);padding:1.5px 5px;border-radius:4px;font-size:11.5px;font-family:ui-monospace,Menlo,Consolas,monospace}
+.btn{background:var(--mc-yellow);border:0;border-radius:12px;padding:14px 24px;font-family:inherit;font-size:14px;font-weight:800;color:#4A3000;cursor:pointer;transition:.35s;box-shadow:0 3px 10px rgba(255,199,44,.4)}
+.btn:hover{background:var(--mc-yellow-d);transform:translateY(-2px);box-shadow:0 7px 18px rgba(255,199,44,.5)}
+.btn.r{background:var(--mc-red);color:#fff;box-shadow:0 3px 10px rgba(218,41,28,.32)}
+.btn.r:hover{background:var(--mc-red-d);box-shadow:0 7px 18px rgba(218,41,28,.42)}
+.row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.f{flex:1;min-width:148px}
+.lbl{font-size:12.5px;color:var(--ink2);margin-bottom:7px;font-weight:700}
+
+.pc{background:linear-gradient(135deg,var(--mc-yellow),#FFB612);border-radius:var(--r);padding:26px;margin-bottom:18px;
+  display:flex;justify-content:space-between;align-items:center;gap:18px;flex-wrap:wrap;box-shadow:0 8px 26px rgba(255,199,44,.34)}
+.pcn{font-size:13px;color:#7A4E10;margin-bottom:3px;font-weight:700}
+.pcval{font-size:38px;font-weight:800;color:#3A2010;line-height:1.02}
+.pcs{font-size:12.5px;color:#8A5B18;margin-top:7px}
+.ptc{flex-basis:100%;margin-top:14px;background:rgba(255,255,255,.55);border-radius:12px;padding:12px 15px}
+.ptc-h{display:flex;justify-content:space-between;align-items:baseline;font-size:12.5px;font-weight:800;color:#7A4E10}
+.ptc-h b{font-size:17px;color:#3A2010}
+.ptc-s{font-size:11.5px;color:#8A5B18;margin-top:7px;line-height:1.6}
+.bar{height:8px;background:rgba(255,255,255,.55);border-radius:4px;overflow:hidden;margin-top:6px}
+.barf{height:100%;border-radius:4px;transition:width .35s}
+.stat{background:var(--bg);border-radius:12px;padding:14px;text-align:center}
+.statv{font-size:22px;font-weight:800;color:var(--ink)}
+.statl{font-size:11.5px;color:var(--ink3);margin-top:3px}
+.sgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(92px,1fr));gap:10px}
+.stat.mc{background:linear-gradient(135deg,var(--mc-red),var(--mc-red-d))}
+.stat.mc .statv{color:#fff}.stat.mc .statl{color:#FFC9C4}
+.rk{background:var(--bg);border:1.5px solid var(--line);border-radius:14px;padding:18px;margin-bottom:13px}
+.rkh{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:13px;gap:12px;flex-wrap:wrap}
+.rkt{font-size:15.5px;font-weight:800}
+.rkp{font-size:22px;font-weight:800;color:var(--mc-red);white-space:nowrap}
+.stl{font-size:11.5px;color:var(--ink3);margin-top:3px}
+.badge-best{background:var(--mc-yellow);color:#4A3000;font-size:11px;font-weight:800;padding:3px 10px;border-radius:999px;margin-left:8px;vertical-align:middle}
+.versus{display:flex;align-items:center;justify-content:center;gap:13px;margin:18px 0;flex-wrap:wrap}
+.vs{font-size:12px;color:var(--ink3)}
+.pill{background:var(--ok-bg);color:var(--ok);padding:5px 12px;border-radius:999px;font-size:12.5px;font-weight:800}
+.empty{text-align:center;padding:52px 20px;color:var(--ink3)}
+.emptyi{display:flex;justify-content:center;margin-bottom:13px}
+.emptyi svg{width:52px;height:52px;opacity:.6}
+.feat{background:var(--card);border:1.5px solid var(--line);border-radius:15px;padding:18px}
+.fi{width:42px;height:42px;border-radius:12px;background:var(--mc-red);display:flex;align-items:center;justify-content:center;margin-bottom:12px}
+.fi img{width:26px;height:26px}.fi svg{width:26px;height:26px;display:block}
+.fic{width:42px;height:42px;border-radius:12px;background:var(--mc-red);display:flex;align-items:center;justify-content:center;margin-bottom:12px}
+.fic svg{width:26px;height:26px;display:block}
+.fo{background:var(--card2);border:1.5px solid var(--line);border-radius:11px;padding:14px;margin-bottom:11px}
+.fot{font-size:13.5px;font-weight:800;margin-bottom:7px}
+.fod{font-size:12.5px;color:var(--ink2);line-height:1.75}
+.foot{text-align:center;padding:32px 20px 0;color:var(--ink3);font-size:12px;line-height:1.9}
+
+@media(max-width:640px){
+  #hero{height:auto;min-height:300px}
+  .hero-in{position:relative;padding:26px 18px 42px}
+  .hero-sub{margin-left:0;font-size:13px}
+  .hero-stats{margin-left:0;gap:20px}
+  .hero-tag{position:relative;left:0;bottom:0;margin:16px 18px 0}
+  .hero-fb{display:none!important}
+  .brand img{width:36px;height:36px}
+  .brand-tx h1{font-size:23px}
+  .card{padding:18px}.wrap{padding:0 14px 110px}.pcval{font-size:30px}
+  .grid{grid-template-columns:repeat(auto-fill,minmax(158px,1fr));gap:11px}
+  .mimg{min-height:104px}.focus{padding:44px 16px 16px}
+  .focus-img{width:88px;height:88px}
+  .focus-n{font-size:16px}.focus-pv{font-size:25px}
+}
+
+/* ================= 交互反馈增强：按压态 / 焦点环 / Toast / 徽标 ================= */
+nav button{position:relative}
+nav button:focus-visible,.chip:focus-visible,.tile:focus-visible,.madd:focus-visible,
+.btn:focus-visible,.iq:focus-visible,input:focus-visible,select:focus-visible{
+  outline:3px solid var(--mc-yellow-d);outline-offset:2px}
+.btn:hover{transform:translateY(-2px)}
+.btn:active{transform:translateY(0) scale(.97)}
+.btn.r:active{transform:scale(.97)}
+.madd:active{transform:scale(.95)}
+.chip:active{transform:scale(.96)}
+.tile:active{transform:translateY(-1px) scale(.97)}
+nav button:active{transform:scale(.97)}
+nav button,.chip,.tile,.madd,.btn,.iq{-webkit-tap-highlight-color:transparent}
+nav button,.chip,.tile,.madd,.btn{-webkit-user-select:none;user-select:none}
+nav::-webkit-scrollbar{height:4px}
+nav::-webkit-scrollbar-thumb{background:var(--line2);border-radius:2px}
+nav::-webkit-scrollbar-track{background:transparent}
+/* 导航横滑渐隐边缘：提示可左右滑动 */
+.navwrap{position:relative}
+.navwrap::before,.navwrap::after{content:"";position:absolute;top:20px;bottom:6px;width:46px;z-index:7;pointer-events:none}
+.navwrap::before{left:0;background:linear-gradient(90deg,var(--card),transparent)}
+.navwrap::after{right:0;background:linear-gradient(270deg,var(--card),transparent)}
+/* 购物车数量徽标：内联于导航按钮，避免被 overflow 裁切 */
+.nb{display:inline-block;min-width:18px;height:18px;padding:0 5px;border-radius:999px;
+  background:var(--mc-red);color:#fff;font-size:10.5px;font-weight:800;line-height:18px;text-align:center;
+  margin-left:6px;vertical-align:2px;box-shadow:0 2px 8px rgba(218,41,28,.4);
+  animation:pop .3s cubic-bezier(.34,1.56,.64,1)}
+.nb[hidden]{display:none}
+@keyframes pop{from{transform:scale(0)}to{transform:scale(1)}}
+/* Toast 轻提示：加入成功 / 清空 / 参数纠正等即时反馈 */
+#toastWrap{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:99;display:flex;
+  flex-direction:column;align-items:center;gap:8px;pointer-events:none;width:max-content;max-width:92vw}
+.toast{display:flex;align-items:center;gap:9px;background:#3A2413;color:#fff;font-size:13px;font-weight:700;
+  padding:11px 18px;border-radius:999px;box-shadow:0 10px 30px rgba(58,36,19,.35);
+  animation:tin .28s cubic-bezier(.22,.61,.36,1)}
+.toast.out{animation:tout .22s ease forwards}
+.toast .ti{font-size:15px;line-height:1}
+.toast.ok .ti{color:#7BE3AE}.toast.warn .ti{color:#FFC72C}.toast.err .ti{color:#FF9A92}
+@keyframes tin{from{opacity:0;transform:translateY(14px) scale(.94)}to{opacity:1;transform:none}}
+@keyframes tout{to{opacity:0;transform:translateY(8px) scale(.96)}}
+@media(min-width:768px){#toastWrap{bottom:auto;top:22px}}
+/* 计算中状态：先绘制反馈，再执行同步计算 */
+.btn.pending{pointer-events:none;opacity:.75}
+.btn.pending::after{content:"";width:14px;height:14px;margin-left:8px;border-radius:50%;display:inline-block;
+  border:2px solid rgba(255,255,255,.45);border-top-color:#fff;vertical-align:-2px;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* 移动端触控目标放大 */
+@media(max-width:560px){.iq{width:56px;padding:9px 6px}}
+/* 尊重系统「减少动态效果」偏好 */
+@media(prefers-reduced-motion:reduce){
+  .tab{animation:none}
+  .tile,.mi,.btn,.madd,.chip,.focus-img img,.mimg img{transition:none!important}
+  .nb,.toast,#cartbar.bump{animation:none}
+}
+@media(max-width:767px){#toastWrap{bottom:104px}}
+</style>
+</head>
+<body>
+
+<!-- ================= 品牌区 ================= -->
+<section id="hero">
+  <canvas id="gl"></canvas>
+  <div class="hero-fb" id="heroFb" style="display:none"><svg viewBox="0 0 24 24" width="150" height="150" xmlns="http://www.w3.org/2000/svg" ><path d="M17.243 3.006c2.066 0 3.742 8.714 3.742 19.478H24c0-11.588-3.042-20.968-6.766-20.968-2.127 0-4.007 2.81-5.248 7.227-1.241-4.416-3.121-7.227-5.231-7.227C3.031 1.516 0 10.888 0 22.476h3.014c0-10.763 1.658-19.47 3.724-19.47 2.066 0 3.741 8.05 3.741 17.98h2.997c0-9.93 1.684-17.98 3.75-17.98Z" fill="#FFC72C"/></svg></div>
+  <div class="hero-in">
+    <div class="brand">
+      <svg viewBox="0 0 24 24" width="44" height="44" xmlns="http://www.w3.org/2000/svg" ><path d="M17.243 3.006c2.066 0 3.742 8.714 3.742 19.478H24c0-11.588-3.042-20.968-6.766-20.968-2.127 0-4.007 2.81-5.248 7.227-1.241-4.416-3.121-7.227-5.231-7.227C3.031 1.516 0 10.888 0 22.476h3.014c0-10.763 1.658-19.47 3.724-19.47 2.066 0 3.741 8.05 3.741 17.98h2.997c0-9.93 1.684-17.98 3.75-17.98Z" fill="#FFC72C"/></svg>
+      <div class="brand-tx">
+        <h1>麦麦智配</h1>
+        <p>热量 · 配餐 · 优惠 · 点单 一站式决策助手</p>
+      </div>
+    </div>
+    <p class="hero-sub">全部数据来自麦当劳 MCP Server 官方接口 · 菜单顺序与门店实时售价严格同步</p>
+    <div class="hero-stats">
+      <div><div class="hstv" id="s1">121</div><div class="hstl">在售餐品</div></div>
+      <div><div class="hstv" id="s2">61</div><div class="hstl">营养条目</div></div>
+      <div><div class="hstv">5</div><div class="hstl">长沙门店</div></div>
+      <div><div class="hstv">35</div><div class="hstl">MCP 工具</div></div>
+    </div>
+  </div>
+  <div class="hero-tag">
+    <span class="ht">M-CODE 2026 参赛作品</span>
+    <span class="ht" id="htMode">3D 金拱门舞台 · Three.js</span>
+  </div>
+</section>
+
+<div class="wrap">
+<div class="navwrap">
+<nav role="tablist" aria-label="功能模块切换">
+  <button class="on" role="tab" id="tab-menu" aria-controls="menu" aria-selected="true" data-t="menu"><svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M17.243 3.006c2.066 0 3.742 8.714 3.742 19.478H24c0-11.588-3.042-20.968-6.766-20.968-2.127 0-4.007 2.81-5.248 7.227-1.241-4.416-3.121-7.227-5.231-7.227C3.031 1.516 0 10.888 0 22.476h3.014c0-10.763 1.658-19.47 3.724-19.47 2.066 0 3.741 8.05 3.741 17.98h2.997c0-9.93 1.684-17.98 3.75-17.98Z"/></svg>菜单看板</button>
+  <button role="tab" id="tab-search" aria-controls="search" aria-selected="false" data-t="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5 21 21"/></svg>食物查询</button>
+  <button role="tab" id="tab-kcal" aria-controls="kcal" aria-selected="false" data-t="kcal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11h16a8 8 0 0 1-16 0Z"/><path d="M9.2 7.5c0-1.4 1.1-1.4 1.1-2.8M14.6 7.5c0-1.4 1.1-1.4 1.1-2.8"/></svg>热量配餐</button>
+  <button role="tab" id="tab-coupon" aria-controls="coupon" aria-selected="false" data-t="coupon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 8V6.5A1.5 1.5 0 0 1 4.5 5h15A1.5 1.5 0 0 1 21 6.5V8a2.6 2.6 0 0 0 0 8v1.5a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5V16a2.6 2.6 0 0 0 0-8Z"/><path d="M14 5v14" stroke-dasharray="2.6 2.6"/></svg>优惠最大化<span class="nb" id="cartBadge" hidden>0</span></button>
+  <button role="tab" id="tab-order" aria-controls="order" aria-selected="false" data-t="order"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8h14l-1 12H6L5 8Z"/><path d="M9 10V6a3 3 0 0 1 6 0v4"/></svg>点单建议</button>
+  <button role="tab" id="tab-points" aria-controls="points" aria-selected="false" data-t="points"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M9.2 9.3 12 12.5l2.8-3.2M12 12.5V17M9.8 13.9h4.4"/></svg>积分·领券</button>
+  <button role="tab" id="tab-mcd" aria-controls="mcd" aria-selected="false" data-t="mcd"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg>功能集成</button>
+</nav>
+</div>
+
+<!-- ================= 菜单看板 ================= -->
+<section class="tab on" id="menu" role="tabpanel" aria-labelledby="tab-menu" tabindex="-1">
+  <div class="card">
+    <div class="ct">菜单看板</div>
+    <div class="cd">分类与排序严格遵循麦当劳现行菜单 · 门店 storeCode 3390081 长沙五一路平和堂餐厅</div>
+    <div class="sbox">
+      <input type="text" id="q" placeholder="搜索菜名，如「巨无霸」「鸡腿堡」「咖啡」「麦旋风」…" oninput="scheduleRender()" onkeydown="onSearchKey(event,'q')" autocomplete="off">
+      <span class="sico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5 21 21"/></svg></span>
+    </div>
+    <div class="chips" id="cats"></div>
+  </div>
+
+  <div class="stage">
+    <div class="stage-badge">官方菜单 · 精选餐品</div>
+    <div class="focus" id="focusPanel"></div>
+  </div>
+
+  <div class="strip">
+    <div class="strip-h">
+      <div class="strip-t" id="stripT">人气热卖</div>
+      <div class="strip-c" id="stripC"></div>
+    </div>
+    <div class="strip-l" id="strip"></div>
+  </div>
+
+  <div class="card">
+    <div class="row" style="justify-content:space-between;margin-bottom:16px">
+      <div style="font-size:13px;color:var(--ink2)">共 <b id="cnt">0</b> 项</div>
+      <select id="sort" style="width:auto;padding:9px 13px;font-size:13px" onchange="render()">
+        <option value="official">官方菜单顺序</option>
+        <option value="price">价格从低到高</option>
+        <option value="priceDesc">价格从高到低</option>
+        <option value="save">折扣力度</option>
+        <option value="kcalAsc">热量从低到高</option>
+        <option value="kcalDesc">热量从高到低</option>
+      </select>
+    </div>
+    <div class="grid" id="list"></div>
+  </div>
+</section>
+
+<section class="tab" id="search" role="tabpanel" aria-labelledby="tab-search" tabindex="-1">
+  <div class="card">
+    <div class="ct">食物查询</div>
+    <div class="cd">查询单个餐品的完整营养成分，以及可用的积分兑换方案</div>
+    <div class="sbox">
+      <input type="text" id="q2" placeholder="输入食物名称，如「巨无霸」「中薯条」「燕麦奶铁」" oninput="scheduleSearch()" onkeydown="onSearchKey(event,'q2')" autocomplete="off">
+      <span class="sico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5 21 21"/></svg></span>
+    </div>
+    <div class="chips" id="q2chips"></div>
+  </div>
+  <div id="searchOut" aria-live="polite"></div>
+</section>
+
+<section class="tab" id="kcal" role="tabpanel" aria-labelledby="tab-kcal" tabindex="-1">
+  <div class="card">
+    <div class="ct">热量配餐</div>
+    <div class="cd">设定目标热量，在真实菜单中搜索组合，按总价从低到高排序</div>
+    <div class="row">
+      <div class="f"><div class="lbl">目标热量（千卡）</div><input type="number" id="target" value="800" min="100" max="3000" step="50"></div>
+      <div class="f"><div class="lbl">容差</div><select id="tol">
+        <option value="0.05">±5%（精准）</option><option value="0.1" selected>±10%（推荐）</option><option value="0.2">±20%（宽松）</option>
+      </select></div>
+      <div class="f"><div class="lbl">排序</div><select id="ksort">
+        <option value="price">总价从低到高</option><option value="value">每千卡成本最低</option>
+      </select></div>
+    </div>
+    <div class="row" style="margin-top:16px">
+      <button class="btn r" onclick="planKcal(this)">生成配餐方案</button>
+      <button class="chip" onclick="setT(500)">500 千卡</button>
+      <button class="chip" onclick="setT(800)">800 千卡</button>
+      <button class="chip" onclick="setT(1200)">1200 千卡</button>
+    </div>
+    <div class="note o" style="margin-top:16px"><b>数据说明：</b>热量取自 MCP <code>list-nutrition-foods</code> 全国营养库，价格取自门店 <code>query-meals</code> 实时菜单。仅展示两项数据均齐全的餐品，套餐类因营养库无对应条目已自动排除。</div>
+  </div>
+  <div id="kcalOut" aria-live="polite"></div>
+</section>
+
+<section class="tab" id="coupon" role="tabpanel" aria-labelledby="tab-coupon" tabindex="-1">
+  <div class="card">
+    <div class="ct">优惠最大化</div>
+    <div class="cd">勾选餐品，自动比价：原价 → 促销折扣 → 麦金卡到手价 → 叠加积分兑换</div>
+    <div id="cartList" style="margin-bottom:18px" aria-live="polite"></div>
+    <div class="row">
+      <button class="btn r" onclick="calcBest(this)">计算最优方案</button>
+      <button class="chip" onclick="addBest()">一键加入麦金卡套餐</button>
+      <button class="chip" onclick="clearCart()">清空</button>
+    </div>
+  </div>
+  <div id="couponOut" aria-live="polite"></div>
+</section>
+
+<section class="tab" id="order" role="tabpanel" aria-labelledby="tab-order" tabindex="-1">
+  <div class="card">
+    <div class="ct">到店 / 外送点单建议</div>
+    <div class="cd">先选取餐方式，再选出行方式，基于真实距离与营业状态给出建议</div>
+    <div class="row">
+      <div class="f"><div class="lbl">① 取餐方式</div>
+        <div class="seg" id="modeSeg">
+          <button class="on" data-v="1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5 5.6 4h12.8L20 9.5M4 9.5h16v10.5H4Z"/><path d="M9.6 20v-6h4.8v6"/></svg>到店自取</button>
+          <button data-v="5"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 15.5v-2.5l1.8-4.7A2 2 0 0 1 7.2 7h9.6a2 2 0 0 1 1.9 1.3l1.8 4.7v2.5M3.5 15.5h17"/><circle cx="7.3" cy="17.6" r="1.7"/><circle cx="16.7" cy="17.6" r="1.7"/></svg>得来速</button>
+          <button data-v="2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6.6" cy="16.6" r="1.7"/><circle cx="17.4" cy="16.6" r="1.7"/><path d="M8.3 16.6 11 9.8h4.2l3 6.8M11 9.8H8.6M15.2 9.8V7.2h2.2"/></svg>麦乐送</button>
+        </div>
+      </div>
+      <div class="f"><div class="lbl">② 出行方式</div>
+        <div class="seg" id="tpSeg">
+          <button data-v="walk">步行</button><button data-v="bike">骑车</button>
+          <button data-v="metro">地铁</button><button class="on" data-v="car">自驾</button>
+        </div>
+      </div>
+      <div class="f"><div class="lbl">③ 用餐人数</div><input type="number" id="ps" value="1" min="1" max="10"></div>
+      <div class="f"><div class="lbl">④ 可接受距离（米）</div><input type="number" id="maxd" value="1500" step="100"></div>
+    </div>
+    <div class="row" style="margin-top:16px"><button class="btn r" onclick="advise(this)">生成点单建议</button></div>
+  </div>
+  <div id="orderOut" aria-live="polite"></div>
+</section>
+
+<section class="tab" id="points" role="tabpanel" aria-labelledby="tab-points" tabindex="-1">
+  <div class="pc">
+    <div>
+      <div class="pcn">我的可用积分</div>
+      <div class="pcval" id="ap">538.2</div>
+      <div class="pcs">麦享会积分 · 累计 717.5 · 已用 40 · 已过期 139.3</div>
+    </div>
+    <div class="sgrid" style="min-width:290px;flex:1">
+      <div class="stat mc"><div class="statv" id="pCan">8</div><div class="statl">可兑商品</div></div>
+      <div class="stat mc"><div class="statv" id="pBest">50</div><div class="statl">最低兑换档</div></div>
+      <div class="stat mc"><div class="statv" id="pLack">1</div><div class="statl">积分不足</div></div>
+    </div>
+    <div class="ptc">
+      <div class="ptc-h"><span>积分当钱花</span><b id="ptcV">—</b></div>
+      <div class="bar" style="margin-top:9px"><div class="barf" id="ptcBar" style="width:0%;background:var(--mc-yellow)"></div></div>
+      <div class="ptc-s" id="ptcS">正在计算…</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="ct">积分兑换券</div>
+    <div class="cd">已按截止时间过滤。每积分折算价值 = 券面金额 ÷ 所需积分，越高越划算</div>
+    <div class="tw"><table id="ptable"></table></div>
+    <div class="note w" style="margin-top:16px"><b>数据陷阱提醒：</b>MCP <code>mall-points-products</code> 返回的 <code>status</code> 字段全部标记为「上架」，但 <code>downTime</code> 显示多数已在 2026-03 / 2026-06 过期。本看板<b>以 downTime 为准</b>过滤，实测 25 条原始数据中仅 9 条有效。</div>
+  </div>
+  <div class="card">
+    <div class="ct">我的优惠券</div>
+    <div class="cd">来自 MCP <code>available-coupons</code></div>
+    <div class="row" style="gap:14px;align-items:flex-start">
+      <div style="flex:1"><div class="lbl">已领取 4 张</div><div id="cpC" style="display:flex;gap:7px;flex-wrap:wrap"></div></div>
+      <div style="flex:1"><div class="lbl">可领取 3 张 · 零成本</div><div id="cpA" style="display:flex;gap:7px;flex-wrap:wrap"></div></div>
+    </div>
+    <div class="note o" style="margin-top:14px"><b>优先领券：</b>3 张可领取券价值高于任何积分兑换。领券对应 MCP <code>auto-bind-coupons</code>，该工具会真实写操作，调用前须向用户确认。</div>
+  </div>
+</section>
+
+<section class="tab" id="mcd" role="tabpanel" aria-labelledby="tab-mcd" tabindex="-1">
+  <div class="card"><div class="ct">麦当劳核心功能集成</div>
+    <div class="cd">基于 MCP Server 35 个工具的能力地图，本项目已集成 / 可对接的部分</div></div>
+  <div class="card">
+    <div class="ct">已集成到看板</div>
+    <div class="cd">以下能力已在本页面实现并使用真实接口数据</div>
+    <div class="grid">
+      <div class="feat"><div class="fi"><svg viewBox="0 0 24 24" width="26" height="26" xmlns="http://www.w3.org/2000/svg" ><path d="M17.243 3.006c2.066 0 3.742 8.714 3.742 19.478H24c0-11.588-3.042-20.968-6.766-20.968-2.127 0-4.007 2.81-5.248 7.227-1.241-4.416-3.121-7.227-5.231-7.227C3.031 1.516 0 10.888 0 22.476h3.014c0-10.763 1.658-19.47 3.724-19.47 2.066 0 3.741 8.05 3.741 17.98h2.997c0-9.93 1.684-17.98 3.75-17.98Z" fill="#FFC72C"/></svg></div><div style="font-size:15px;font-weight:800;margin-bottom:6px">菜单浏览与打字搜索</div>
+        <div class="fod"><code>query-meals</code><br>121 项门店实时菜单，15 个官方分类严格按官方顺序排列，支持关键词搜索与六维排序</div></div>
+      <div class="feat"><div class="fi"><svg viewBox="0 0 24 24" width="26" height="26" xmlns="http://www.w3.org/2000/svg" ><path d="M17.243 3.006c2.066 0 3.742 8.714 3.742 19.478H24c0-11.588-3.042-20.968-6.766-20.968-2.127 0-4.007 2.81-5.248 7.227-1.241-4.416-3.121-7.227-5.231-7.227C3.031 1.516 0 10.888 0 22.476h3.014c0-10.763 1.658-19.47 3.724-19.47 2.066 0 3.741 8.05 3.741 17.98h2.997c0-9.93 1.684-17.98 3.75-17.98Z" fill="#FFC72C"/></svg></div><div style="font-size:15px;font-weight:800;margin-bottom:6px">3D 食物模型舞台</div>
+        <div class="fod">Three.js r128<br>按分类程序化建模，悬停聚焦、缩放高亮、邻项弱化；WebGL 不可用时自动降级为 2D 大图</div></div>
+      <div class="feat"><div class="fi"><svg viewBox="0 0 24 24" width="26" height="26" xmlns="http://www.w3.org/2000/svg" ><path d="M17.243 3.006c2.066 0 3.742 8.714 3.742 19.478H24c0-11.588-3.042-20.968-6.766-20.968-2.127 0-4.007 2.81-5.248 7.227-1.241-4.416-3.121-7.227-5.231-7.227C3.031 1.516 0 10.888 0 22.476h3.014c0-10.763 1.658-19.47 3.724-19.47 2.066 0 3.741 8.05 3.741 17.98h2.997c0-9.93 1.684-17.98 3.75-17.98Z" fill="#FFC72C"/></svg></div><div style="font-size:15px;font-weight:800;margin-bottom:6px">营养成分查询</div>
+        <div class="fod"><code>list-nutrition-foods</code><br>61 项全国营养库，六大指标：能量、蛋白质、脂肪、碳水、钠、钙</div></div>
+      <div class="feat"><div class="fi"><svg viewBox="0 0 24 24" width="26" height="26" xmlns="http://www.w3.org/2000/svg" ><path d="M17.243 3.006c2.066 0 3.742 8.714 3.742 19.478H24c0-11.588-3.042-20.968-6.766-20.968-2.127 0-4.007 2.81-5.248 7.227-1.241-4.416-3.121-7.227-5.231-7.227C3.031 1.516 0 10.888 0 22.476h3.014c0-10.763 1.658-19.47 3.724-19.47 2.066 0 3.741 8.05 3.741 17.98h2.997c0-9.93 1.684-17.98 3.75-17.98Z" fill="#FFC72C"/></svg></div><div style="font-size:15px;font-weight:800;margin-bottom:6px">门店定位与推荐</div>
+        <div class="fod"><code>query-nearby-stores</code><br>真实距离、营业状态、预约时段，支持步行/骑行/地铁/自驾加权</div></div>
+      <div class="feat"><div class="fi"><svg viewBox="0 0 24 24" width="26" height="26" xmlns="http://www.w3.org/2000/svg" ><path d="M17.243 3.006c2.066 0 3.742 8.714 3.742 19.478H24c0-11.588-3.042-20.968-6.766-20.968-2.127 0-4.007 2.81-5.248 7.227-1.241-4.416-3.121-7.227-5.231-7.227C3.031 1.516 0 10.888 0 22.476h3.014c0-10.763 1.658-19.47 3.724-19.47 2.066 0 3.741 8.05 3.741 17.98h2.997c0-9.93 1.684-17.98 3.75-17.98Z" fill="#FFC72C"/></svg></div><div style="font-size:15px;font-weight:800;margin-bottom:6px">麦金卡优惠比价</div>
+        <div class="fod"><code>query-meals</code> discountType<br>识别「随单购麦金卡优惠」「促销优惠」，自动计算到手价与原价对比</div></div>
+      <div class="feat"><div class="fi"><svg viewBox="0 0 24 24" width="26" height="26" xmlns="http://www.w3.org/2000/svg" ><path d="M17.243 3.006c2.066 0 3.742 8.714 3.742 19.478H24c0-11.588-3.042-20.968-6.766-20.968-2.127 0-4.007 2.81-5.248 7.227-1.241-4.416-3.121-7.227-5.231-7.227C3.031 1.516 0 10.888 0 22.476h3.014c0-10.763 1.658-19.47 3.724-19.47 2.066 0 3.741 8.05 3.741 17.98h2.997c0-9.93 1.684-17.98 3.75-17.98Z" fill="#FFC72C"/></svg></div><div style="font-size:15px;font-weight:800;margin-bottom:6px">积分兑换计算</div>
+        <div class="fod"><code>mall-points-products</code><br>按 downTime 过滤有效券，计算每积分折算价值，积分不足预警</div></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="ct">可对接（需实时调用，本页未接入）</div>
+    <div class="cd">涉及实时查询或写操作，架构上已预留，需在 AI 侧编排</div>
+    <div class="grid">
+      <div class="feat" style="background:var(--card2)"><div class="fic"><svg viewBox="0 0 24 24" width="26" height="26" xmlns="http://www.w3.org/2000/svg"><path d="M17.243 3.006c2.066 0 3.742 8.714 3.742 19.478H24c0-11.588-3.042-20.968-6.766-20.968-2.127 0-4.007 2.81-5.248 7.227-1.241-4.416-3.121-7.227-5.231-7.227C3.031 1.516 0 10.888 0 22.476h3.014c0-10.763 1.658-19.47 3.724-19.47 2.066 0 3.741 8.05 3.741 17.98h2.997c0-9.93 1.684-17.98 3.75-17.98Z" fill="#FFFFFF"/></svg></div><div style="font-size:15px;font-weight:800;margin-bottom:6px">麦乐送全链路下单</div>
+        <div class="fod"><code>delivery-query-addresses</code> → <code>delivery-query-stores</code> → <code>calculate-price</code> → <code>create-order</code><br><span style="color:var(--err)">写操作，须用户确认后执行</span></div></div>
+      <div class="feat" style="background:var(--card2)"><div class="fic"><svg viewBox="0 0 24 24" width="26" height="26" xmlns="http://www.w3.org/2000/svg"><path d="M17.243 3.006c2.066 0 3.742 8.714 3.742 19.478H24c0-11.588-3.042-20.968-6.766-20.968-2.127 0-4.007 2.81-5.248 7.227-1.241-4.416-3.121-7.227-5.231-7.227C3.031 1.516 0 10.888 0 22.476h3.014c0-10.763 1.658-19.47 3.724-19.47 2.066 0 3.741 8.05 3.741 17.98h2.997c0-9.93 1.684-17.98 3.75-17.98Z" fill="#FFFFFF"/></svg></div><div style="font-size:15px;font-weight:800;margin-bottom:6px">一键领券 / 取消订单</div>
+        <div class="fod"><code>auto-bind-coupons</code> <code>cancel-order</code><br><span style="color:var(--err)">写操作，须用户确认后执行</span></div></div>
+      <div class="feat" style="background:var(--card2)"><div class="fic"><svg viewBox="0 0 24 24" width="26" height="26" xmlns="http://www.w3.org/2000/svg"><path d="M17.243 3.006c2.066 0 3.742 8.714 3.742 19.478H24c0-11.588-3.042-20.968-6.766-20.968-2.127 0-4.007 2.81-5.248 7.227-1.241-4.416-3.121-7.227-5.231-7.227C3.031 1.516 0 10.888 0 22.476h3.014c0-10.763 1.658-19.47 3.724-19.47 2.066 0 3.741 8.05 3.741 17.98h2.997c0-9.93 1.684-17.98 3.75-17.98Z" fill="#FFFFFF"/></svg></div><div style="font-size:15px;font-weight:800;margin-bottom:6px">积分抽奖</div>
+        <div class="fod"><code>query-lottery-info</code> → <code>draw-lottery</code> → <code>query-my-prizes</code><br><span style="color:var(--err)">抽奖消耗积分，须确认</span></div></div>
+      <div class="feat" style="background:var(--card2)"><div class="fic"><svg viewBox="0 0 24 24" width="26" height="26" xmlns="http://www.w3.org/2000/svg"><path d="M17.243 3.006c2.066 0 3.742 8.714 3.742 19.478H24c0-11.588-3.042-20.968-6.766-20.968-2.127 0-4.007 2.81-5.248 7.227-1.241-4.416-3.121-7.227-5.231-7.227C3.031 1.516 0 10.888 0 22.476h3.014c0-10.763 1.658-19.47 3.724-19.47 2.066 0 3.741 8.05 3.741 17.98h2.997c0-9.93 1.684-17.98 3.75-17.98Z" fill="#FFFFFF"/></svg></div><div style="font-size:15px;font-weight:800;margin-bottom:6px">主题活动预约</div>
+        <div class="fod"><code>query-party-city</code> → <code>query-party-store</code> → <code>query-party-store-date</code> → <code>party-order-create</code><br>生日派对、品鉴会、麦麦体验营</div></div>
+      <div class="feat" style="background:var(--card2)"><div class="fic"><svg viewBox="0 0 24 24" width="26" height="26" xmlns="http://www.w3.org/2000/svg"><path d="M17.243 3.006c2.066 0 3.742 8.714 3.742 19.478H24c0-11.588-3.042-20.968-6.766-20.968-2.127 0-4.007 2.81-5.248 7.227-1.241-4.416-3.121-7.227-5.231-7.227C3.031 1.516 0 10.888 0 22.476h3.014c0-10.763 1.658-19.47 3.724-19.47 2.066 0 3.741 8.05 3.741 17.98h2.997c0-9.93 1.684-17.98 3.75-17.98Z" fill="#FFFFFF"/></svg></div><div style="font-size:15px;font-weight:800;margin-bottom:6px">活动日历</div>
+        <div class="fod"><code>campaign-calendar</code><br>当月营销活动日历，返回进行中 / 往期 / 未来活动</div></div>
+      <div class="feat" style="background:var(--card2)"><div class="fic"><svg viewBox="0 0 24 24" width="26" height="26" xmlns="http://www.w3.org/2000/svg"><path d="M17.243 3.006c2.066 0 3.742 8.714 3.742 19.478H24c0-11.588-3.042-20.968-6.766-20.968-2.127 0-4.007 2.81-5.248 7.227-1.241-4.416-3.121-7.227-5.231-7.227C3.031 1.516 0 10.888 0 22.476h3.014c0-10.763 1.658-19.47 3.724-19.47 2.066 0 3.741 8.05 3.741 17.98h2.997c0-9.93 1.684-17.98 3.75-17.98Z" fill="#FFFFFF"/></svg></div><div style="font-size:15px;font-weight:800;margin-bottom:6px">套餐特制与替换</div>
+        <div class="fod"><code>query-meal-detail</code><br>套餐组成、选择题、特制选项（selectedKey / unselectedKey 规则）</div></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="ct">数据质量校验</div>
+    <div class="cd">本项目在实测 MCP 数据时发现并处理的三个坑</div>
+    <div class="fo"><div class="fot">① <code>status</code> 字段失真</div>
+      <div class="fod"><code>mall-points-products</code> 的 <code>status</code> 全部返回「2-上架」，但 <code>downTime</code> 显示多数已过期。实测 25 条原始数据中 <b>16 条已下架</b>，真实有效仅 9 条。处理方式：改以 <code>downTime</code> 为准过滤。</div></div>
+    <div class="fo"><div class="fot">② 热量与价格分属两套数据源</div>
+      <div class="fod"><code>list-nutrition-foods</code> 是全国静态库，<b>无价格无门店维度</b>；<code>query-meals</code> 有价格但套餐类无营养数据。121 项菜单中仅 40 项（33%）有热量数据，配餐模块采用交集策略，套餐自动排除。</div></div>
+    <div class="fo"><div class="fot">③ <code>calculate-price</code> 返回单位为「分」</div>
+      <div class="fod">官方工具说明明确要求<b>展示时须除以 100</b>。任何未经过该接口回验的金额只能标注为「预估」，不得标注为「价格」。</div></div>
+  </div>
+</section>
+
+<div class="foot">
+  麦麦智配 · M-CODE 麦当劳程序员创意开发大赛参赛作品<br>
+  数据来源：<code>M-China/mcd-mcp-server</code>（Streamable HTTP @ <code>https://mcp.mcd.cn</code>）· 数据抓取于 2026-10-12<br>
+  标志为麦当劳官方矢量资产（simple-icons，CC0）· 品牌色 #FFC72C / #DA291C · 商标权利归麦当劳所有<br>
+  本项目为参赛作品，非麦当劳官方产品 · 餐品信息与价格以官方渠道实时结果为准
+</div>
+</div>
+
+<div id="toastWrap" role="status" aria-live="polite"></div>
+<noscript><div style="max-width:640px;margin:40px auto;padding:20px;background:#FDECEA;border-radius:12px;color:#8C1A14;font-size:14px;line-height:1.8">本页面的菜单看板、配餐计算等交互功能需要启用 JavaScript 才能运行，请在浏览器设置中开启后刷新页面。</div></noscript>
+<!-- ================= 全局悬浮结算条 / 主题切换 ================= -->
+<div id="cartbar">
+  <div class="cb-l"><div class="cb-n" id="cbN">购物车 · 0 件</div><div class="cb-s" id="cbS">点「去比价」算最优到手价</div></div>
+  <div class="cb-v" id="cbV">¥0</div>
+  <button class="btn r" id="cbBtn" type="button">去比价</button>
+</div>
+<button id="themeBtn" type="button" title="切换深色 / 浅色模式" aria-label="切换深色 / 浅色模式"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M5.3 5.3l1.7 1.7M17 17l1.7 1.7M18.7 5.3 17 7M7 17l-1.7 1.7"/></svg></button>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* ============================================================
+   全局状态
+   ============================================================ */
+let D=null, CART={}, curCat='全部';
+let VIEW=[], FOCUS=0, focusCode=null;
+const cache={};
+/* 品牌 SVG 图标（替代 emoji，跨平台渲染一致） */
+const ICONS={
+  m:'<svg viewBox="0 0 24 24" style="fill:var(--mc-yellow)" xmlns="http://www.w3.org/2000/svg"><path d="M17.243 3.006c2.066 0 3.742 8.714 3.742 19.478H24c0-11.588-3.042-20.968-6.766-20.968-2.127 0-4.007 2.81-5.248 7.227-1.241-4.416-3.121-7.227-5.231-7.227C3.031 1.516 0 10.888 0 22.476h3.014c0-10.763 1.658-19.47 3.724-19.47 2.066 0 3.741 8.05 3.741 17.98h2.997c0-9.93 1.684-17.98 3.75-17.98Z"/></svg>',
+  search:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5 21 21"/></svg>',
+  bag:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8h14l-1 12H6L5 8Z"/><path d="M9 10V6a3 3 0 0 1 6 0v4"/></svg>',
+  sun:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M5.3 5.3l1.7 1.7M17 17l1.7 1.7M18.7 5.3 17 7M7 17l-1.7 1.7"/></svg>',
+  moon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5Z"/></svg>'
+};
+/* 分段控件（取餐 / 出行方式） */
+function segVal(id){const el=document.querySelector('#'+id+' .on');return el?el.dataset.v:''}
+document.querySelectorAll('.seg').forEach(s=>s.addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  s.querySelectorAll('button').forEach(x=>x.classList.remove('on'));b.classList.add('on');
+}));
+/* 深色主题 */
+function setTheme(t){document.documentElement.dataset.theme=t;
+  try{localStorage.setItem('mcd-theme',t)}catch(e){}
+  const b=document.getElementById('themeBtn');
+  if(b){b.innerHTML=t==='dark'?ICONS.moon:ICONS.sun;b.setAttribute('aria-pressed',String(t==='dark'))}}
+try{setTheme(localStorage.getItem('mcd-theme')||'light')}catch(e){setTheme('light')}
+document.getElementById('themeBtn').onclick=function(){
+  setTheme(document.documentElement.dataset.theme==='dark'?'light':'dark');
+};
+/* 结算条 → 跳到优惠比价 */
+document.getElementById('cbBtn').onclick=function(){
+  const t=document.querySelector('[data-t=coupon]');if(t)t.click();
+  setTimeout(function(){var c=document.getElementById('cartList');if(c)c.scrollIntoView({behavior:'smooth',block:'center'})},80);
+};
+
+/* 系统「减少动态效果」偏好（做存在性防御，个别旧环境无 matchMedia） */
+const RM=window.matchMedia?matchMedia('(prefers-reduced-motion: reduce)').matches:false;
+
+/* ============================================================
+   交互反馈工具：轻提示 / 按钮计算态 / 输入防抖 / 数量收敛
+   ============================================================ */
+function toast(msg,type='ok'){
+  const wrap=document.getElementById('toastWrap');if(!wrap)return;
+  const el=document.createElement('div');
+  el.className='toast '+type;
+  const icon=type==='err'?'✕':type==='warn'?'!':'✓';
+  el.innerHTML='<span class="ti">'+icon+'</span><span></span>';
+  el.lastElementChild.textContent=msg;
+  wrap.appendChild(el);
+  setTimeout(()=>{el.classList.add('out');
+    el.addEventListener('animationend',()=>el.remove(),{once:true});
+    setTimeout(()=>el.remove(),400);},2400);
+}
+/* 计算类按钮：先绘制「计算中」反馈，再执行同步计算，避免界面观感卡死 */
+function pendingOn(btn){
+  if(!btn)return()=>{};
+  btn.classList.add('pending');btn.disabled=true;
+  const old=btn.textContent;btn.textContent='计算中';
+  let restored=false;
+  return()=>{if(restored)return;restored=true;
+    btn.classList.remove('pending');btn.disabled=false;btn.textContent=old};
+}
+function withPending(btn,fn){
+  const done=pendingOn(btn);
+  setTimeout(()=>{try{fn()}finally{done()}},30);
+}
+/* 搜索防抖：连续打字合并为一次重绘；Esc 清空、Enter 立即执行 */
+let renderTimer=0,searchTimer=0;
+function scheduleRender(){clearTimeout(renderTimer);renderTimer=setTimeout(()=>render(true),160)}
+function flushRender(){clearTimeout(renderTimer);render(true)}
+function scheduleSearch(){clearTimeout(searchTimer);searchTimer=setTimeout(doSearch,180)}
+function flushSearch(){clearTimeout(searchTimer);doSearch()}
+function onSearchKey(e,id){
+  if(e.key==='Escape'){e.target.value='';id==='q'?flushRender():flushSearch();}
+  else if(e.key==='Enter'){id==='q'?flushRender():flushSearch();}
+}
+/* 购物车数量收敛到 1–99，避免空值 / 0 / 负数导致小计显示异常 */
+function setQty(k,v){
+  let n=parseInt(v,10);
+  if(isNaN(n)||n<1)n=1;
+  if(n>99)n=99;
+  CART[k]=n;renderCart();
+}
+function removeItem(k){const m=D.menu[k];delete CART[k];renderCart();toast('已移除 '+(m?m.name:'餐品'));}
+
+/* 统一渲染循环：离屏暂停（仅品牌区 3D） */
+const VIS={hero:true};
+const io=new IntersectionObserver(es=>es.forEach(e=>{
+  if(e.target.id==='gl')VIS.hero=e.isIntersecting;
+}),{threshold:.02});
+{const el=document.getElementById('gl');if(el)io.observe(el)}
+function loop(){requestAnimationFrame(loop);
+  if(VIS.hero&&heroTick)heroTick();}
+
+/* ============================================================
+   聚焦面板（纯 DOM，不依赖 WebGL —— 保证任何环境都能渲染）
+   ============================================================ */
+function renderFocusPanel(it,code){
+  const off=it.originalPrice>it.currentPrice;
+  const tags=(it.tags||[]).slice(0,4);
+  const p=document.getElementById('focusPanel');
+  if(!p)return;
+  p.innerHTML=`
+    <div class="focus-img${it.image?'':' off'}">${it.image?`<img src="${it.image}" alt="${it.name}" referrerpolicy="no-referrer" onerror="this.closest('.focus-img').classList.add('off');this.remove()">`:''}</div>
+    <div class="focus-b">
+      <div class="focus-n">${it.name}</div>
+      <div class="focus-p">
+        <span class="focus-pv">¥${it.currentPrice.toFixed(1)}</span>
+        ${off?`<span class="focus-po">¥${it.originalPrice.toFixed(1)}</span><span class="focus-sv">省 ¥${(it.originalPrice-it.currentPrice).toFixed(1)}</span>`:''}
+      </div>
+      <div class="focus-m">
+        ${it.kcal?`<span class="fm k">${it.kcal} 千卡${it.kcal>=500?' · 高热量':''}</span>`:'<span class="fm nocal">套餐无单项营养数据</span>'}
+        ${it.discountType?`<span class="fm fg gold">${it.discountType}</span>`:''}
+      </div>
+      ${tags.length?`<div class="focus-t">${tags.map(x=>`<span class="fg${/爆款|人气/.test(x)?' hot':''}">${x}</span>`).join('')}</div>`:''}
+      <button class="btn r" style="padding:11px 20px;font-size:13px" onclick="add('${code}')">加入比价</button>
+    </div>`;
+}
+
+const M_POLY=[[2.1846, 3.7475], [2.3124, 3.7206], [2.4987, 3.5827], [2.6187, 3.4288], [2.7914, 3.1101], [3.0562, 2.3622], [3.287, 1.3715], [3.4774, 0.1705], [3.6212, -1.2081], [3.7121, -2.7319], [3.7437, -4.3683], [5.0, -4.3683], [4.979, -3.2987], [4.9178, -2.2678], [4.8187, -1.283], [4.6321, -0.0548], [4.3887, 1.0599], [4.1723, 1.8106], [3.8435, 2.6836], [3.5699, 3.2325], [3.1738, 3.8088], [2.8566, 4.1146], [2.5247, 4.3036], [2.1808, 4.3683], [1.8536, 4.3144], [1.538, 4.1566], [1.2358, 3.9008], [0.9491, 3.5529], [0.6796, 3.1186], [0.4293, 2.604], [0.2002, 2.0149], [-0.0058, 1.3571], [-0.3467, 2.3768], [-0.6909, 3.1185], [-1.0723, 3.7026], [-1.4854, 4.1131], [-1.8606, 4.3144], [-2.0543, 4.3596], [-2.3012, 4.3611], [-2.5293, 4.3037], [-2.7519, 4.1911], [-2.9683, 4.0255], [-3.1778, 3.8092], [-3.5734, 3.2333], [-3.9325, 2.4812], [-4.2496, 1.5708], [-4.5186, 0.5201], [-4.7337, -0.6531], [-4.8892, -1.9309], [-4.9791, -3.2955], [-5.0, -4.365], [-3.7442, -4.365], [-3.724, -3.0481], [-3.6452, -1.4996], [-3.5126, -0.0898], [-3.3324, 1.1487], [-3.1106, 2.1835], [-2.8533, 2.982], [-2.5666, 3.512], [-2.3831, 3.6874], [-2.2567, 3.7407], [-2.1283, 3.7413], [-1.9397, 3.6494], [-1.8179, 3.5298], [-1.6423, 3.2674], [-1.3714, 2.6251], [-1.1334, 1.7527], [-0.9, 0.4445], [-0.7563, -0.8281], [-0.6654, -2.2343], [-0.6338, -3.7442], [0.615, -3.7442], [0.6468, -2.2343], [0.7381, -0.8281], [0.8824, 0.4445], [1.0734, 1.5532], [1.3048, 2.468], [1.5702, 3.1588], [1.7431, 3.4531], [1.8632, 3.5953], [2.0496, 3.7227], [2.1775, 3.7475]];
+
+/* ============================================================
+   场景一：品牌区金色双拱门
+   官方 SVG 轮廓 -> ExtrudeGeometry 倒角挤出，程序化环境反射，慢速呼吸动画。
+   WebGL / THREE 不可用时降级为静态官方矢量标志（见 hero-fb）。
+   ============================================================ */
+let heroTick=null;
+(function(){
+  const cv=document.getElementById('gl');
+  if(!cv||!window.THREE){fbHero();return}
+  const size=()=>({W:cv.clientWidth||innerWidth,H:cv.clientHeight||290});
+  let {W,H}=size(), renderer;
+  try{renderer=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:false,powerPreference:'high-performance'})}
+  catch(e){fbHero();return}
+  function fbHero(){cv.style.display='none';const f=document.getElementById('heroFb');
+    if(f)f.style.display='block';
+    const m=document.getElementById('htMode');if(m)m.textContent='官方矢量标志';}
+
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  renderer.setSize(W,H,false);
+  const scene=new THREE.Scene();
+  scene.background=new THREE.Color(0xDA291C);
+  const cam=new THREE.PerspectiveCamera(42,W/H,.1,160);
+  cam.position.set(0,0,30);
+
+  scene.add(new THREE.AmbientLight(0xffffff,.5));
+  const k1=new THREE.DirectionalLight(0xFFE9C0,1.45);k1.position.set(-6,8,10);scene.add(k1);
+  const k2=new THREE.DirectionalLight(0xffffff,.45);k2.position.set(8,2,4);scene.add(k2);
+  const rim=new THREE.PointLight(0xFFD98A,1.05,36);rim.position.set(3,-4,6);scene.add(rim);
+  const rim2=new THREE.PointLight(0xFFF3D0,.7,30);rim2.position.set(-5,3,5);scene.add(rim2);
+
+  /* ---- 程序化环境反射（金属材质需要环境才有质感）---- */
+  const ec=document.createElement('canvas');ec.width=512;ec.height=256;
+  const g2=ec.getContext('2d');
+  const vg=g2.createLinearGradient(0,0,0,256);
+  vg.addColorStop(0,'#FFE3A8');vg.addColorStop(.42,'#F0A83A');
+  vg.addColorStop(.55,'#DA291C');vg.addColorStop(1,'#4A0B06');
+  g2.fillStyle=vg;g2.fillRect(0,0,512,256);
+  for(const [cx,cy,r,col] of [[150,60,70,'rgba(255,240,200,.95)'],[390,90,46,'rgba(255,255,255,.55)'],[60,200,90,'rgba(255,220,150,.35)']]){
+    const rg=g2.createRadialGradient(cx,cy,4,cx,cy,r);
+    rg.addColorStop(0,col);rg.addColorStop(1,'rgba(255,255,255,0)');
+    g2.fillStyle=rg;g2.beginPath();g2.arc(cx,cy,r,0,6.29).fill();
+  }
+  const envTex=new THREE.CanvasTexture(ec);
+  envTex.mapping=THREE.EquirectangularReflectionMapping;
+  scene.environment=envTex;
+
+  /* ---- canvas 贴图工具 ---- */
+  function cnv(w,h,draw){const c=document.createElement('canvas');c.width=w;c.height=h;
+    draw(c.getContext('2d'),w,h);return new THREE.CanvasTexture(c)}
+
+  /* ---- 舞台组：宽屏靠右，窄屏居中 ---- */
+  const stage=new THREE.Group();scene.add(stage);
+
+  /* ---- 官方双拱门轮廓 -> 挤出 3D（倒角高光）---- */
+  const shape=new THREE.Shape();
+  M_POLY.forEach((p,i)=>i===0?shape.moveTo(p[0],p[1]):shape.lineTo(p[0],p[1]));
+  shape.closePath();
+  const mGeo=new THREE.ExtrudeGeometry(shape,{
+    depth:1.15,bevelEnabled:true,bevelThickness:.10,bevelSize:.10,
+    bevelSegments:3,curveSegments:1,steps:1});
+  mGeo.center();
+  const grp=new THREE.Group();
+  grp.add(new THREE.Mesh(mGeo,new THREE.MeshStandardMaterial({
+    color:0xFFC72C,metalness:.9,roughness:.18,
+    emissive:0x3D2400,emissiveIntensity:.38})));
+  grp.rotation.y=-.34;
+  stage.add(grp);
+
+  /* ---- 三座悬浮小金拱门：环绕主拱门公转 ---- */
+  const minis=[];
+  [[.16,4.7,.5,1.1,0],[.11,5.8,-.38,2.2,2.1],[.085,3.8,.72,-.6,4.0]].forEach(([sc,r,sp,y,ph],i)=>{
+    const m=new THREE.Mesh(mGeo,new THREE.MeshStandardMaterial({
+      color:i===1?0xFFE08A:0xFFC72C,metalness:.88,roughness:.22,
+      emissive:0x3D2400,emissiveIntensity:.3}));
+    m.scale.setScalar(sc);
+    m.userData={r,sp,y,ph};
+    stage.add(m);minis.push(m);
+  });
+
+  /* ---- 反射舞台圆盘（金属吸环境）---- */
+  const disc=new THREE.Mesh(new THREE.CircleGeometry(9.2,72),
+    new THREE.MeshStandardMaterial({color:0x8E160C,metalness:.95,roughness:.34}));
+  disc.rotation.x=-Math.PI/2;disc.position.y=-4.92;stage.add(disc);
+
+  /* ---- 接触阴影（径向渐变贴片，接地用）---- */
+  const shTex=cnv(256,256,(g)=>{const rg=g.createRadialGradient(128,128,6,128,128,128);
+    rg.addColorStop(0,'rgba(20,0,0,.5)');rg.addColorStop(1,'rgba(20,0,0,0)');
+    g.fillStyle=rg;g.fillRect(0,0,256,256)});
+  const sh=new THREE.Mesh(new THREE.PlaneGeometry(11,11),
+    new THREE.MeshBasicMaterial({map:shTex,transparent:true,depthWrite:false}));
+  sh.rotation.x=-Math.PI/2;sh.position.y=-4.88;stage.add(sh);
+
+  /* ---- 刻度环：24 枚金钉 ---- */
+  const tickGeo=new THREE.BoxGeometry(.07,.03,.42);
+  const tickMat=new THREE.MeshStandardMaterial({color:0xFFD98A,metalness:.8,roughness:.3,
+    emissive:0x3D2400,emissiveIntensity:.25});
+  const ticks=new THREE.Group();
+  for(let i=0;i<24;i++){
+    const a=i/24*Math.PI*2;
+    const t=new THREE.Mesh(tickGeo,tickMat);
+    t.position.set(Math.cos(a)*8.1,0,Math.sin(a)*8.1);
+    t.rotation.y=-a;
+    ticks.add(t);
+  }
+  ticks.position.y=-4.86;stage.add(ticks);
+
+  /* ---- 底座三环 ---- */
+  const ring=new THREE.Mesh(new THREE.TorusGeometry(3.6,.05,10,72),
+    new THREE.MeshBasicMaterial({color:0xFFD98A,transparent:true,opacity:.45}));
+  ring.rotation.x=Math.PI/2;ring.position.y=-4.84;stage.add(ring);
+  const ring2=new THREE.Mesh(new THREE.TorusGeometry(4.5,.028,10,72),
+    new THREE.MeshBasicMaterial({color:0xFFFFFF,transparent:true,opacity:.2}));
+  ring2.rotation.x=Math.PI/2;ring2.position.y=-4.85;stage.add(ring2);
+  const ring3=new THREE.Mesh(new THREE.TorusGeometry(6.4,.02,8,96),
+    new THREE.MeshBasicMaterial({color:0xFFD98A,transparent:true,opacity:.12}));
+  ring3.rotation.x=Math.PI/2;ring3.position.y=-4.85;stage.add(ring3);
+
+  /* ---- 背后辉光 ---- */
+  const glowTex=cnv(256,256,(g)=>{const rg=g.createRadialGradient(128,128,8,128,128,128);
+    rg.addColorStop(0,'rgba(255,216,112,.60)');rg.addColorStop(.45,'rgba(255,190,70,.20)');
+    rg.addColorStop(1,'rgba(255,190,70,0)');g.fillStyle=rg;g.fillRect(0,0,256,256)});
+  const glow=new THREE.Mesh(new THREE.PlaneGeometry(20,15),
+    new THREE.MeshBasicMaterial({map:glowTex,transparent:true,depthWrite:false}));
+  glow.position.set(0,0,-4);stage.add(glow);
+
+  /* ---- 顶部体积光锥（叠加混合）---- */
+  const beamTex=cnv(64,256,(g,w,h)=>{const lg=g.createLinearGradient(0,0,0,h);
+    lg.addColorStop(0,'rgba(255,240,200,.9)');lg.addColorStop(1,'rgba(255,240,200,0)');
+    g.fillStyle=lg;g.fillRect(0,0,w,h)});
+  const beams=[];
+  for(let i=0;i<2;i++){
+    const b=new THREE.Mesh(new THREE.PlaneGeometry(7,16),
+      new THREE.MeshBasicMaterial({map:beamTex,transparent:true,opacity:.1,
+        blending:THREE.AdditiveBlending,depthWrite:false}));
+    b.position.set(i?2.6:-2.6,3.4,-3.2);
+    b.rotation.z=i?-.14:.14;
+    stage.add(b);beams.push(b);
+  }
+
+  /* ---- 金色尘埃粒子（上浮循环）---- */
+  const DN=220;
+  const dpos=new Float32Array(DN*3), dspd=new Float32Array(DN);
+  for(let i=0;i<DN;i++){
+    dpos[i*3]=(Math.random()-.5)*30;
+    dpos[i*3+1]=-5+Math.random()*12;
+    dpos[i*3+2]=-8+Math.random()*10;
+    dspd[i]=.12+Math.random()*.5;
+  }
+  const dgeo=new THREE.BufferGeometry();
+  dgeo.setAttribute('position',new THREE.BufferAttribute(dpos,3));
+  const dustTex=cnv(64,64,(g)=>{const rg=g.createRadialGradient(32,32,2,32,32,32);
+    rg.addColorStop(0,'rgba(255,255,255,1)');rg.addColorStop(.4,'rgba(255,230,160,.6)');
+    rg.addColorStop(1,'rgba(255,230,160,0)');g.fillStyle=rg;g.fillRect(0,0,64,64)});
+  const dust=new THREE.Points(dgeo,new THREE.PointsMaterial({
+    size:.16,map:dustTex,transparent:true,opacity:.85,depthWrite:false,
+    blending:THREE.AdditiveBlending,color:0xFFE9B8,sizeAttenuation:true}));
+  scene.add(dust);
+
+  /* ---- 漂浮晶体 ---- */
+  const floaters=[],pg=new THREE.OctahedronGeometry(.17,0);
+  for(let i=0;i<18;i++){
+    const m=new THREE.Mesh(pg,new THREE.MeshStandardMaterial({
+      color:i%2?0xFFD98A:0xFFFFFF,metalness:.6,roughness:.3,transparent:true,opacity:.85}));
+    m.position.set((Math.random()-.5)*24,-4+Math.random()*10,-6+Math.random()*9);
+    m.userData={sp:.14+Math.random()*.36,ph:Math.random()*6.28,
+      ry:(Math.random()-.5)*.02,rx:(Math.random()-.5)*.014};
+    scene.add(m);floaters.push(m);
+  }
+
+  /* ---- 响应式布局：宽屏舞台靠右，窄屏整体缩小 ---- */
+  let wide=true;
+  function layout(){
+    const s=size();
+    wide=s.W/s.H>3;
+    stage.position.x=wide?4.7:0;
+    stage.scale.setScalar(wide?1:.78);
+    dust.position.x=stage.position.x*.4;
+  }
+  layout();
+
+  /* ---- 交互：鼠标视差 + 拖拽旋转（带惯性）---- */
+  let mx=0,my=0,dragging=false,lastX=0,vel=0,spin=-.34;
+  cv.style.touchAction='pan-y';
+  cv.addEventListener('pointermove',e=>{
+    if(dragging){const dx=e.clientX-lastX;lastX=e.clientX;vel=dx*.008;spin+=vel;return}
+    const r=cv.getBoundingClientRect();
+    mx=((e.clientX-r.left)/r.width-.5)*2;my=((e.clientY-r.top)/r.height-.5)*2});
+  cv.addEventListener('pointerdown',e=>{dragging=true;lastX=e.clientX;vel=0;
+    try{cv.setPointerCapture(e.pointerId)}catch(err){}});
+  const endDrag=()=>{dragging=false};
+  cv.addEventListener('pointerup',endDrag);
+  cv.addEventListener('pointercancel',endDrag);
+  cv.addEventListener('pointerleave',()=>{dragging=false;mx=my=0});
+
+  /* ---- 入场动画：相机推进 + 拱门回弹缩放 ---- */
+  let intro=RM?1:0, t=0;
+  const easeOut=k=>1-Math.pow(1-k,3);
+  const easeBack=k=>{const c=1.70158;return 1+(c+1)*Math.pow(k-1,3)+c*Math.pow(k-1,2)};
+
+  heroTick=function(){
+    t+=.008;
+    if(intro<1)intro=Math.min(1,intro+.014);
+    const ie=easeOut(intro), ib=easeBack(intro);
+    cam.position.z=30-12.5*ie;
+    grp.scale.setScalar(.55+.45*ib);
+    grp.position.y=(wide?-.05:.2)+Math.sin(t*.8)*.13;
+    if(!dragging){vel*=.94;spin+=vel+(RM?0:.0022)}
+    grp.rotation.y=spin+Math.sin(t*.42)*.13+mx*.22;
+    grp.rotation.x=Math.sin(t*.6)*.03+my*.05;
+    /* 小金拱门公转 */
+    minis.forEach(m=>{
+      const u=m.userData,a=t*u.sp+u.ph;
+      m.position.set(Math.cos(a)*u.r,u.y+Math.sin(t*1.2+u.ph)*.35,Math.sin(a)*u.r);
+      m.rotation.y=-a+Math.PI/2;
+      m.rotation.z=Math.sin(t+u.ph)*.12;
+    });
+    /* 舞台氛围 */
+    ring.material.opacity=.4+Math.sin(t*1.1)*.13;
+    ring2.material.opacity=.16+Math.sin(t*1.1+.9)*.09;
+    ring3.material.opacity=.1+Math.sin(t*.7)*.05;
+    ticks.rotation.y=t*.05;
+    glow.material.opacity=.78+Math.sin(t*.7)*.12;
+    beams.forEach((b,i)=>{b.material.opacity=(.09+i*.03)+Math.sin(t*.9+i*2)*.025});
+    /* 尘埃上浮循环 */
+    for(let i=0;i<DN;i++){
+      dpos[i*3+1]+=dspd[i]*.008;
+      if(dpos[i*3+1]>7.5){dpos[i*3+1]=-5.5;dpos[i*3]=(Math.random()-.5)*30}
+    }
+    dgeo.attributes.position.needsUpdate=true;
+    dust.rotation.y=t*.012;
+    floaters.forEach(m=>{
+      m.position.y+=Math.sin(t+m.userData.ph)*m.userData.sp*.012;
+      m.rotation.y+=m.userData.ry;m.rotation.x+=m.userData.rx;});
+    cam.position.x+=(mx*.9-cam.position.x)*.04;
+    cam.position.y+=(-my*.6-cam.position.y)*.04;
+    cam.lookAt(stage.position.x*.35,0,0);
+    renderer.render(scene,cam);
+  };
+  let rzT=0;
+  addEventListener('resize',()=>{clearTimeout(rzT);rzT=setTimeout(()=>{
+    const s=size();if(s.W===W&&s.H===H)return;W=s.W;H=s.H;
+    renderer.setSize(W,H,false);cam.aspect=W/H;cam.updateProjectionMatrix();layout()},140)});
+  /* 减少动态效果偏好：只渲染一帧静态画面，停止持续动画 */
+  if(RM){heroTick();heroTick=null}
+})();
+
+
+
+/* ============================================================
+   看板逻辑
+   ============================================================ */
+function init(){
+  document.getElementById('s1').textContent=Object.keys(D.menu).length;
+  document.getElementById('s2').textContent=Object.keys(D.nutrition).length;
+
+  const cats=[{name:'全部',codes:D.menuGlobalOrder}].concat(D.menuOrder);
+  document.getElementById('cats').innerHTML=cats.map(c=>
+    `<button class="chip${c.name==='全部'?' on':''}" onclick="setCat(this)" data-c="${c.name}">${c.name}<span class="n">${c.codes.length}</span></button>`).join('');
+
+  const hot=['巨无霸','板烧鸡腿堡','麦辣鸡腿汉堡','圆筒冰淇淋','中薯条','燕麦奶铁'];
+  document.getElementById('q2chips').innerHTML=hot.map(h=>
+    `<button class="chip" onclick="document.getElementById('q2').value='${h}';doSearch()">${h}</button>`).join('');
+  document.getElementById('ap').textContent=D.account.availablePoint;
+
+  const pp=D.pointsProducts.filter(p=>new Date(p.downTime.replace(' ','T'))>new Date());
+  document.getElementById('pCan').textContent=pp.length;
+  document.getElementById('pBest').textContent=pp.length?Math.min(...pp.map(p=>p.point)):'—';
+  document.getElementById('pLack').textContent=pp.filter(p=>p.point>D.account.availablePoint).length;
+
+  /* 积分当钱花：当前积分折算价值 + 距最低兑换档进度 */
+  if(pp.length){
+    const cheap=pp.reduce((a,p)=>p.point<a.point?a:a);
+    const bestV=pp.reduce((a,p)=>parseFloat(p.selling.match(/([\d.]+)元/)[1])>parseFloat(a.selling.match(/([\d.]+)元/)[1])?p:a);
+    const bestPer=parseFloat(bestV.selling.match(/([\d.]+)元/)[1])/bestV.point;
+    const ap=D.account.availablePoint;
+    document.getElementById('ptcV').textContent='≈ ¥'+(ap*bestPer).toFixed(1);
+    document.getElementById('ptcBar').style.width=Math.min(100,ap/cheap.point*100).toFixed(1)+'%';
+    document.getElementById('ptcS').textContent=ap>=cheap.point
+      ?'已过最低兑换档（'+cheap.point+' 积分），当前可兑 '+pp.filter(p=>p.point<=ap).length+' 张；按最划算券折算，每积分 ≈ '+bestPer.toFixed(3)+' 元'
+      :'再攒 '+(cheap.point-ap).toFixed(1)+' 积分即可兑换「'+cheap.spuName+'」（'+cheap.point+' 积分档）';
+  }
+  document.getElementById('ptable').innerHTML=
+    `<thead><tr><th>商品</th><th>积分</th><th>面值</th><th>每积分折算</th><th>状态</th></tr></thead><tbody>`+
+    pp.map(p=>{
+      const v=parseFloat(p.selling.match(/([\d.]+)元/)[1])/p.point;
+      const ok=p.point<=D.account.availablePoint;
+      const bw=Math.min(100,parseFloat(p.selling.match(/([\d.]+)元/)[1])/22*100);
+      return `<tr><td><b>${p.spuName}</b><br><span style="font-size:11px;color:var(--ink3)">ID ${p.spuId} · 截止 ${p.downTime.slice(0,10)}</span></td>
+        <td><b>${p.point}</b></td><td>${p.selling.match(/([\d.]+)元/)[1]} 元</td>
+        <td><b style="color:${v>=.1?'var(--ok)':'var(--ink3)'}">${v.toFixed(3)} 元</b>
+        <div class="bar" style="width:80px"><div class="barf" style="width:${bw}%;background:${v>=.1?'var(--ok)':'var(--mc-yellow)'}"></div></div></td>
+        <td>${ok?'<span class="pill">可兑</span>':'<span style="color:var(--err);font-size:12.5px">差 '+(p.point-D.account.availablePoint).toFixed(1)+'</span>'}</td></tr>`}).join('')+'</tbody>';
+  document.getElementById('cpC').innerHTML=D.coupons.claimed.map(c=>`<span class="cp">${c}</span>`).join('');
+  document.getElementById('cpA').innerHTML=D.coupons.claimable.map(c=>`<span class="cp a">${c}</span>`).join('');
+  renderCart();
+
+  curCat='全部';VIEW=D.menuGlobalOrder.slice();
+  render();
+  /* 深链接启动：带 #hash 打开时直达对应模块 */
+  {const h0=location.hash.slice(1);if(TABS.some(x=>x.dataset.t===h0))switchTab(h0,{push:false});}
+  loop();
+}
+
+/* ============================================================
+   Tab 切换：ARIA Tabs 模式 + Hash 路由（前进/后退/深链接）
+   ============================================================ */
+const TABS=[...document.querySelectorAll('nav button')];
+const TAB_LABEL={menu:'菜单看板',search:'食物查询',kcal:'热量配餐',coupon:'优惠最大化',order:'点单建议',points:'积分·领券',mcd:'功能集成'};
+function switchTab(t,{push=true,focusPanel=true}={}){
+  const b=TABS.find(x=>x.dataset.t===t);if(!b)return;
+  TABS.forEach(x=>{const on=x===b;x.classList.toggle('on',on);x.setAttribute('aria-selected',on)});
+  document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x.id===t));
+  const panel=document.getElementById(t);
+  if(push&&location.hash.slice(1)!==t)location.hash=t;
+  document.title='麦麦智配 · '+(TAB_LABEL[t]||'');
+  scrollTo({top:0,behavior:RM?'auto':'smooth'});
+  /* 移动端导航激活项自动滚入可见区（仅横向，不牵动页面） */
+  const nav=b.parentElement;
+  if(nav&&nav.scrollWidth>nav.clientWidth+1){
+    const left=Math.max(0,Math.min(b.offsetLeft-nav.clientWidth/2+b.offsetWidth/2,nav.scrollWidth-nav.clientWidth));
+    nav.scrollTo({left,behavior:RM?'auto':'smooth'});
+  }
+  if(focusPanel&&panel)panel.focus({preventScroll:true});
+}
+TABS.forEach(b=>b.onclick=()=>switchTab(b.dataset.t));
+/* 键盘方向键切换 Tab（WAI-ARIA Tabs 模式） */
+document.querySelector('nav').addEventListener('keydown',e=>{
+  const i=TABS.indexOf(document.activeElement);if(i<0)return;
+  let j=-1;
+  if(e.key==='ArrowRight')j=(i+1)%TABS.length;
+  else if(e.key==='ArrowLeft')j=(i-1+TABS.length)%TABS.length;
+  else if(e.key==='Home')j=0;
+  else if(e.key==='End')j=TABS.length-1;
+  if(j<0)return;e.preventDefault();
+  TABS[j].focus();switchTab(TABS[j].dataset.t);
+});
+/* 浏览器前进/后退与深链接（如 #coupon 直达优惠最大化）；界面已是对应面板则忽略自身回写 */
+addEventListener('hashchange',()=>{
+  const t=location.hash.slice(1);
+  if(TABS.some(x=>x.dataset.t===t)&&!document.getElementById(t).classList.contains('on'))
+    switchTab(t,{push:false,focusPanel:false});
+});
+
+function setCat(btn){
+  curCat=btn.dataset.c;
+  document.querySelectorAll('#cats .chip').forEach(x=>x.classList.remove('on'));
+  btn.classList.add('on');render();
+}
+
+function currentCodes(){
+  const q=(document.getElementById('q').value||'').trim().toLowerCase();
+  const base=curCat==='全部'?D.menuGlobalOrder:D.menuOrder.find(c=>c.name===curCat).codes;
+  if(!q)return base;
+  return base.filter(c=>{const m=D.menu[c];
+    return m.name.toLowerCase().includes(q)||(m.tags||[]).some(t=>t.toLowerCase().includes(q))});
+}
+
+/* keep=true：由搜索输入触发，保留当前聚焦项，且不重复播放缩略图条滚动动画 */
+function render(keep){
+  VIEW=currentCodes();
+  const catName=curCat==='全部'?'全部餐品':curCat;
+  document.getElementById('stripT').textContent=catName;
+  document.getElementById('cnt').textContent=VIEW.length;
+  document.getElementById('stripC').textContent=VIEW.length+' 项 · 官方顺序';
+  renderStrip();
+  if(VIEW.length){
+    const idx=keep&&focusCode?VIEW.indexOf(focusCode):-1;
+    focusAt(idx>=0?idx:0,!!keep);
+  }
+
+  const s=document.getElementById('sort').value;
+  let items=VIEW.map(c=>({code:c,...D.menu[c]}));
+  if(s==='price')items.sort((a,b)=>a.currentPrice-b.currentPrice);
+  if(s==='priceDesc')items.sort((a,b)=>b.currentPrice-a.currentPrice);
+  if(s==='save')items.sort((a,b)=>(b.originalPrice-b.currentPrice)/b.originalPrice-(a.originalPrice-a.currentPrice)/a.originalPrice);
+  if(s==='kcalAsc')items.sort((a,b)=>(a.kcal??1e9)-(b.kcal??1e9));
+  if(s==='kcalDesc')items.sort((a,b)=>(b.kcal??-1)-(a.kcal??-1));
+  document.getElementById('list').innerHTML=items.length?items.map(i=>{
+    const off=i.originalPrice>i.currentPrice;
+    const hot=(i.tags||[]).some(t=>/爆款|人气/.test(t));
+    return `<div class="mi"><div class="mimg"><div class="mimg-fb">${ICONS.m}</div>${i.image?`<img src="${i.image}" alt="${i.name}" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">`:''}
+      ${hot?'<span class="mflag">爆款</span>':''}${off?`<span class="moff">省${(i.originalPrice-i.currentPrice).toFixed(1)}</span>`:''}</div>
+      <div class="mbody"><div class="mn">${i.name}</div>
+      <div class="mp"><span class="mpv">¥${i.currentPrice.toFixed(1)}</span>${off?`<span class="mpo">¥${i.originalPrice.toFixed(1)}</span>`:''}</div>
+      ${i.kcal?`<div class="mkc">${i.kcal} 千卡${i.kcal>=500?' · 高热量':''}</div>`:'<div class="mkc nocal">套餐无单项营养数据</div>'}
+      ${i.discountType?`<div class="mkc fg gold">${i.discountType}</div>`:''}
+      <button class="madd" onclick="add('${i.code}')">加入比价</button></div></div>`}).join('')
+    :'<div class="empty" style="grid-column:1/-1"><div class="emptyi">${ICONS.m}</div>没有匹配的餐品<br>试试「鸡」「堡」「咖啡」「麦旋风」</div>';
+}
+
+function renderStrip(){
+  document.getElementById('strip').innerHTML=VIEW.map((c,i)=>{const m=D.menu[c];
+    return `<button class="tile" data-code="${c}" onmouseenter="hoverTile(this)" onfocus="hoverTile(this)" onclick="pickTile(this)">
+      <span class="tile-idx">${i+1}</span>
+      <img src="${m.image||''}" alt="${m.name}" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'">
+      <div class="tile-n">${m.name}</div></button>`}).join('');
+}
+
+/* 聚焦：3D 与 2D 降级都走这里，保证面板必然渲染 */
+function focusAt(i,quiet){
+  if(i<0||i>=VIEW.length)return;
+  FOCUS=i;const code=VIEW[i],it=D.menu[code];
+  focusCode=code;
+  renderFocusPanel(it,code);
+  const strip=document.getElementById('strip');
+  [...strip.children].forEach((el,j)=>el.classList.toggle('on',j===i));
+  const on=strip.children[i];
+  if(on&&!quiet)scrollStripTo(on);
+}
+
+/* 缩略图条缓动滚动：600ms easeInOutCubic；新动画会取消上一个，避免快速操作时互相打架 */
+let stripAnim=0;
+function scrollStripTo(el){
+  const box=document.getElementById('strip');
+  if(!box||!el)return;
+  const target=el.offsetLeft-box.clientWidth/2+el.offsetWidth/2;
+  if(RM){box.scrollLeft=target;return}
+  const start=box.scrollLeft, d=target-start, dur=600, t0=performance.now(), me=++stripAnim;
+  const ease=k=>k<.5?4*k*k*k:1-Math.pow(-2*k+2,3)/2;
+  (function step(now){
+    if(me!==stripAnim)return;
+    const k=Math.min(1,(now-t0)/dur);
+    box.scrollLeft=start+d*ease(k);
+    if(k<1)requestAnimationFrame(step);
+  })(t0);
+}
+function hoverTile(el){const c=el.dataset.code;if(focusCode!==c)focusAt(VIEW.indexOf(c))}
+function pickTile(el){hoverTile(el)}
+
+function doSearch(){
+  const q=(document.getElementById('q2').value||'').trim(),o=document.getElementById('searchOut');
+  if(!q){o.innerHTML='';return}
+  const nut=D.nutrition[q]||D.nutrition[Object.keys(D.nutrition).find(k=>q.length>1&&k.includes(q))];
+  const menu=Object.values(D.menu).find(m=>m.name===q)||Object.values(D.menu).find(m=>m.name.includes(q));
+  const pts=D.pointsProducts.filter(p=>p.point<=D.account.availablePoint&&new Date(p.downTime.replace(' ','T'))>new Date());
+  let h='';
+  if(menu)h+=`<div class="card"><div class="ct">${menu.name}</div>
+    <div class="cd">门店实时售价 · ${menu.cat.replace(/\\n/g,' ')}</div>
+    <div class="row" style="margin-bottom:4px">${menu.image?`<img src="${menu.image}" style="width:150px;height:150px;object-fit:contain;background:var(--card);border-radius:14px" referrerpolicy="no-referrer" onerror="this.remove()">`:''}
+    <div style="flex:1;min-width:200px"><div class="sgrid">
+      <div class="stat mc"><div class="statv">¥${menu.currentPrice.toFixed(1)}</div><div class="statl">当前售价</div></div>
+      <div class="stat"><div class="statv" style="color:var(--mc-red)">${menu.kcal??'—'}</div><div class="statl">热量 kcal</div></div>
+      <div class="stat"><div class="statv">${menu.originalPrice>menu.currentPrice?Math.round((1-menu.currentPrice/menu.originalPrice)*100)+'%':'—'}</div><div class="statl">折扣力度</div></div></div></div></div></div>`;
+  if(nut)h+=`<div class="card"><div class="ct">${q} · 营养成分</div>
+    <div class="cd">数据源 MCP <code>list-nutrition-foods</code>（全国营养库，每份计）</div>
+    <div class="sgrid">
+    <div class="stat mc"><div class="statv">${nut.kcal}</div><div class="statl">能量 kcal</div></div>
+    <div class="stat"><div class="statv">${nut.protein}g</div><div class="statl">蛋白质</div></div>
+    <div class="stat"><div class="statv">${nut.fat}g</div><div class="statl">脂肪</div></div>
+    <div class="stat"><div class="statv">${nut.carb}g</div><div class="statl">碳水</div></div>
+    <div class="stat"><div class="statv">${nut.sodium}</div><div class="statl">钠 mg</div></div>
+    <div class="stat"><div class="statv">${nut.calcium}</div><div class="statl">钙 mg</div></div></div>
+    <div class="note w" style="margin-top:14px"><b>营养参考：</b>成年人每日推荐摄入约 2000–2400 千卡。单一餐品超过全天推荐量 30% 时建议搭配低热量饮品。</div></div>`;
+  if(!nut&&!menu)h+=`<div class="card"><div class="empty"><div class="emptyi">${ICONS.search}</div>未找到「${q}」<br><span style="font-size:12.5px">营养库与门店菜单均无此条目，可尝试更短的关键词</span></div></div>`;
+  h+=`<div class="card"><div class="ct">积分兑换方案</div>
+    <div class="cd">你当前有 ${D.account.availablePoint} 可用积分，以下可立即兑换</div>
+    <div class="tw"><table><thead><tr><th>兑换内容</th><th>需积分</th><th>面值</th></tr></thead><tbody>
+    ${pts.slice(0,5).map(p=>`<tr><td>${p.spuName}</td><td><b>${p.point}</b></td><td>${p.selling.match(/([\d.]+)元/)[1]} 元</td></tr>`).join('')}
+    </tbody></table></div>
+    <div class="note o" style="margin-top:14px">免费领取的优惠券价值通常高于积分兑换，建议<b>先领券再考虑积分</b>。</div></div>`;
+  o.innerHTML=h;
+}
+
+function setT(v){document.getElementById('target').value=v;planKcal()}
+
+function planKcal(btn){
+  const raw=+document.getElementById('target').value;
+  let T=Math.round(raw);
+  if(!raw||isNaN(T)||T<100||T>3000){
+    T=Math.min(3000,Math.max(100,isNaN(T)?800:T));
+    document.getElementById('target').value=T;
+    toast('目标热量已调整为有效范围 100–3000','warn');
+  }
+  withPending(btn,()=>{
+  const tol=+document.getElementById('tol').value;
+  const s=document.getElementById('ksort').value,o=document.getElementById('kcalOut');
+  const pool=D.menuGlobalOrder.map(c=>({code:c,...D.menu[c]})).filter(m=>m.kcal&&m.kcal>0&&!m.name.includes('酱'));
+  const res=[];
+  for(let i=0;i<pool.length;i++)for(let j=i;j<pool.length;j++)for(let k=j;k<pool.length;k++){
+    const set=[pool[i],pool[j],pool[k]].filter((x,idx,a)=>a.findIndex(y=>y.code===x.code)===idx);
+    if(set.length<2||set.length>3)continue;
+    const kcal=set.reduce((x,y)=>x+y.kcal,0);
+    if(kcal<T*(1-tol)||kcal>T*(1+tol))continue;
+    const price=set.reduce((x,y)=>x+y.currentPrice,0);
+    res.push({set,kcal,price,per:price/kcal});
+  }
+  if(!res.length){o.innerHTML=`<div class="card"><div class="note w">在 ±${Math.round(tol*100)}% 容差内没有找到 2–3 品组合。建议放宽容差或调整目标热量。</div></div>`;return}
+  res.sort((a,b)=>s==='price'?a.price-b.price:a.per-b.per);
+  const used=new Set(),picks=[];
+  for(const r of res){const key=r.set.map(x=>x.code).sort().join('|');if(!used.has(key)){used.add(key);picks.push(r)}}
+  o.innerHTML=`<div class="card"><div class="ct">配餐方案 · 目标 ${T} 千卡</div>
+    <div class="cd">命中 ${res.length} 种组合，展示前 ${Math.min(picks.length,6)} 种 · 容差 ±${Math.round(tol*100)}%</div>
+    ${picks.slice(0,6).map((p,i)=>`<div class="rk">
+      <div class="rkh"><div><div class="rkt">方案 ${i+1}${i===0?`<span class="badge-best">${s==='price'?'最低价':'最划算'}</span>`:''}</div>
+      <div class="stl">${p.kcal} 千卡 · 占比全天推荐 ${(p.kcal/2300*100).toFixed(0)}%</div></div>
+      <div style="text-align:right"><div class="rkp">¥${p.price.toFixed(1)}</div><div class="stl">¥${p.per.toFixed(4)}/千卡</div></div></div>
+      <div class="ilist">
+        <div class="ilist-hd"><span style="width:64px">图片</span><span class="sp">餐品</span>
+          <span class="ikl">热量</span><span class="ipr">单价</span></div>
+        ${p.set.map(x=>`<div class="irow">
+          <div class="iw"><span class="ifb">${ICONS.m}</span><img src="${x.image||''}" alt="${x.name}" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()"></div>
+          <div class="inm">${x.name}</div>
+          <div class="ikl">${x.kcal} kcal</div>
+          <div class="ipr">¥${x.currentPrice.toFixed(1)}</div>
+        </div>`).join('')}
+      </div>
+      <button class="chip" style="margin-top:11px" onclick='addAll(${JSON.stringify(p.set.map(x=>x.code))})'>加入比价</button>
+    </div>`).join('')}
+    <div class="note w"><b>口径说明：</b>价格为门店菜单 <code>query-meals</code> 实时售价，未叠加优惠券与麦金卡优惠。最终下单金额须经 <code>calculate-price</code> 官方回验。</div></div>`;
+  });
+}
+
+function add(c){CART[c]=(CART[c]||0)+1;renderCart(true);toast('已加入比价 · '+(D.menu[c]?D.menu[c].name:''))}
+function addAll(cs){cs.forEach(c=>CART[c]=(CART[c]||0)+1);renderCart(true);toast('已加入 '+cs.length+' 项，正在计算最优方案');document.querySelector('[data-t=coupon]').click();calcBest()}
+function clearCart(){if(!Object.keys(CART).length){toast('购物车已经是空的','warn');return}CART={};renderCart();document.getElementById('couponOut').innerHTML='';toast('已清空购物车')}
+
+function renderCart(bump){
+  const ks=Object.keys(CART);
+  document.getElementById('cartList').innerHTML=ks.length?
+    `<div class="ilist">
+      <div class="ilist-hd"><span style="width:64px">图片</span><span class="sp">餐品</span>
+        <span class="ipr">单价</span><span style="width:62px;text-align:center">数量</span>
+        <span class="ipr">小计</span><span style="width:44px"></span></div>`+
+    ks.map(k=>{const m=D.menu[k],q=CART[k];return `<div class="irow">
+      <div class="iw"><span class="ifb">${ICONS.m}</span><img src="${m.image||''}" alt="${m.name}" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()"></div>
+      <div class="inm">${m.name}${m.discountType?`<br><span class="fg gold">${m.discountType}</span>`:''}</div>
+      <div class="ipr">¥${m.currentPrice.toFixed(1)}</div>
+      <input class="iq" type="number" value="${q}" min="1" max="99" inputmode="numeric" aria-label="${m.name}数量" onchange="setQty('${k}',this.value)">
+      <div class="ipr" style="color:var(--mc-red)">¥${(m.currentPrice*q).toFixed(1)}</div>
+      <button class="chip" style="min-width:44px;padding:6px 10px;font-size:12px" onclick="removeItem('${k}')" aria-label="删除${m.name}" title="删除">删</button>
+    </div>`}).join('')+
+    `    </div>`:'<div class="empty" style="padding:26px"><div class="emptyi">'+ICONS.bag+'</div>购物车为空<br>去「菜单看板」加入餐品</div>';
+  const badge=document.getElementById('cartBadge');
+  const n=ks.reduce((s,k)=>s+CART[k],0);
+  if(badge){badge.textContent=n>99?'99+':n;badge.hidden=n===0;}
+  syncCartBar(bump);
+}
+/* 全局悬浮结算条：任何页签都能看到购物车状态 */
+function syncCartBar(bump){
+  const bar=document.getElementById('cartbar');if(!bar)return;
+  const ks=Object.keys(CART);
+  const n=ks.reduce((s,k)=>s+CART[k],0);
+  const total=ks.reduce((s,k)=>s+D.menu[k].currentPrice*CART[k],0);
+  const saved=ks.reduce((s,k)=>{const m=D.menu[k];return s+(m.originalPrice>m.currentPrice?(m.originalPrice-m.currentPrice)*CART[k]:0)},0);
+  if(!n){bar.classList.remove('show');return}
+  bar.classList.add('show');
+  document.getElementById('cbN').textContent='购物车 · '+n+' 件';
+  document.getElementById('cbS').textContent='已省 ¥'+saved.toFixed(1)+' · 点「去比价」算最优到手价';
+  document.getElementById('cbV').textContent='¥'+total.toFixed(1);
+  if(bump){bar.classList.remove('bump');void bar.offsetWidth;bar.classList.add('bump')}
+}
+
+function calcBest(btn){
+  const ks=Object.keys(CART);
+  if(!ks.length){document.getElementById('couponOut').innerHTML='<div class="card"><div class="note e">请先加入餐品</div></div>';toast('购物车还是空的，先去菜单看板加餐','warn');return}
+  withPending(btn,()=>{
+  const o=document.getElementById('couponOut');
+  const items=ks.map(k=>({m:D.menu[k],q:CART[k]}));
+  const list=items.reduce((s,x)=>s+x.m.currentPrice*x.q,0);
+  const orig=items.reduce((s,x)=>s+x.m.originalPrice*x.q,0);
+  const promo=items.filter(x=>x.m.discountType==='促销优惠');
+  const gold=items.filter(x=>x.m.discountType==='随单购麦金卡优惠');
+  const bestGold=gold.length?Math.min(...gold.map(x=>x.m.currentPrice*x.q)):list;
+  const pts=D.pointsProducts.filter(p=>new Date(p.downTime.replace(' ','T'))>new Date()&&p.point<=D.account.availablePoint);
+  const vals=pts.map(p=>parseFloat(p.selling.match(/([\d.]+)元/)[1]));
+  const bestPt=vals.length?Math.max(...vals):0;
+  const bestPtP=pts.find(p=>parseFloat(p.selling.match(/([\d.]+)元/)[1])===bestPt);
+  const final=Math.min(bestGold,list)-bestPt;
+  o.innerHTML=`<div class="card"><div class="ct">比价结果</div>
+    <div class="versus"><span style="font-size:13px;color:var(--ink3)">菜单原价</span>
+      <b style="font-size:21px;color:var(--ink3);text-decoration:line-through">¥${orig.toFixed(1)}</b>
+      <span class="vs">→</span><span class="vs">促销后</span><b style="font-size:21px">¥${list.toFixed(1)}</b>
+      <span class="vs">→</span><span class="vs">叠加最优</span>
+      <b style="font-size:26px;color:var(--mc-red)">¥${final.toFixed(1)}</b>
+      <span class="pill">省 ¥${(list-final).toFixed(1)}</span></div>
+    <table><thead><tr><th>阶段</th><th>金额</th><th>依据</th></tr></thead><tbody>
+      <tr><td>菜单原价</td><td>¥${orig.toFixed(1)}</td><td style="font-size:12px;color:var(--ink3)">originalPrice 合计</td></tr>
+      <tr><td>促销优惠后</td><td>¥${list.toFixed(1)}</td><td style="font-size:12px;color:var(--ink3)">currentPrice 合计${promo.length?`，含 ${promo.length} 项促销优惠`:''}</td></tr>
+      ${gold.length?`<tr><td>麦金卡到手价</td><td>¥${bestGold.toFixed(1)}</td><td style="font-size:12px;color:var(--ink3)">随单购麦金卡优惠${bestGold<list?`，可再省 ¥${(list-bestGold).toFixed(1)}`:'（无额外优惠）'}</td></tr>`:''}
+      ${bestPt?`<tr><td>积分兑换叠加</td><td>-¥${bestPt.toFixed(1)}</td><td style="font-size:12px;color:var(--ink3)">${bestPtP.spuName}（${bestPtP.point} 积分）</td></tr>`:''}
+      <tr style="background:var(--ok-bg)"><td><b>最优实付</b></td><td><b style="color:var(--ok)">¥${final.toFixed(1)}</b></td>
+      <td style="font-size:12px;color:var(--ok)">较原价省 ¥${(orig-final).toFixed(1)}（${((1-final/orig)*100).toFixed(0)}%）</td></tr>
+    </tbody></table>
+    <div class="note w"><b>重要：</b>金额为菜单 <code>currentPrice</code> 推算，<b>未调用 <code>calculate-price</code> 官方回验</b>，实际结算以官方接口为准；叠加积分需通过商城独立链路，与门店点餐结算不通。</div></div>`;
+  });
+}
+
+function addBest(){
+  const ks=Object.keys(D.menu).filter(k=>D.menu[k].discountType==='随单购麦金卡优惠').slice(0,4);
+  if(!ks.length){toast('当前菜单没有随单购麦金卡优惠餐品','warn');return}
+  ks.forEach(k=>CART[k]=(CART[k]||0)+1);
+  renderCart();toast('已加入 '+ks.length+' 项麦金卡优惠餐品');calcBest();
+}
+
+function advise(btn){
+  const ps=Math.min(10,Math.max(1,parseInt(document.getElementById('ps').value,10)||1));
+  document.getElementById('ps').value=ps;
+  const md=Math.max(100,parseInt(document.getElementById('maxd').value,10)||1500);
+  document.getElementById('maxd').value=md;
+  withPending(btn,()=>{
+  const tp=segVal('tpSeg'),mode=+segVal('modeSeg'),
+    o=document.getElementById('orderOut');
+  let ss=D.stores.filter(s=>s.distance<=md).sort((a,b)=>a.distance-b.distance);
+  if(!ss.length){o.innerHTML=`<div class="card"><div class="note e">${md} 米内无可用门店，请放宽距离限制</div></div>`;return}
+  const tpN={walk:'步行',bike:'骑车',metro:'地铁',car:'自驾'}[tp];
+  const w=tp==='car'?1.6:tp==='bike'?1.3:tp==='metro'?1.15:1;
+  const eta=ss[0].distance/80*w;
+  const modeN={1:'到店自取（beType=1）',5:'得来速车道取餐（beType=5）',2:'麦乐送到家（beType=2）'}[mode];
+  const reasons=[];
+  if(tp==='car'&&mode===5)reasons.push('自驾 + 车道取餐，全程不进店，避开堂食排队（推荐组合）');
+  else if(tp==='car')reasons.push('自驾出行，但当前为堂食场景，需预留停车与进店时间');
+  else if(tp==='walk')reasons.push(`步行 ${ss[0].distance} 米，按 80 米/分钟估算约 ${Math.round(eta)} 分钟`);
+  else if(tp==='bike')reasons.push(`骑行 ${ss[0].distance} 米，按 ${Math.round(80/w)} 米/分钟估算约 ${Math.round(eta)} 分钟`);
+  else reasons.push(`地铁换乘步行 ${ss[0].distance} 米，约 ${Math.round(eta)} 分钟`);
+  reasons.push(`营业时间 ${ss[0].businessStartTime}–${ss[0].businessEndTime}，当前${ss[0].businessStatus?'营业中':'休息中'}`);
+  if(ss[0].reservation)reasons.push('支持预约下单，可跳过现场点单环节，直接取餐');
+  if(ps>=2)reasons.push(`${ps} 人用餐建议选${ps>=4?'四件套':'三件套'}类套餐，当前门店有 ${Object.values(D.menu).filter(m=>m.name.includes(ps>=4?'四件套':'三件套')).length} 款可选`);
+  if(mode===2)reasons.push('麦乐送场景需先经 <code>delivery-query-addresses</code> 确认配送地址，再查可配送门店');
+  o.innerHTML=`<div class="card"><div class="ct">推荐：${ss[0].storeName}</div>
+    <div class="cd">${modeN} · ${tpN} · ${ps} 人 · storeCode ${ss[0].storeCode}</div>
+    <div class="sgrid" style="margin-bottom:18px">
+      <div class="stat mc"><div class="statv">${ss[0].distance}</div><div class="statl">距离（米）</div></div>
+      <div class="stat mc"><div class="statv">${Math.round(eta)}</div><div class="statl">预计分钟</div></div>
+      <div class="stat"><div class="statv">${ss[0].reservation?'支持':'不支持'}</div><div class="statl">预约下单</div></div>
+      <div class="stat"><div class="statv">${ss[0].businessStatus?'营业中':'休息'}</div><div class="statl">当前状态</div></div>
+    </div>
+    <div style="font-size:13.5px;font-weight:800;margin-bottom:9px">推荐理由（仅基于可核实数据）</div>
+    <ol style="padding-left:21px;font-size:13.5px;line-height:1.95;color:var(--ink2)">${reasons.map(r=>`<li>${r}</li>`).join('')}</ol>
+    <div style="font-size:13.5px;font-weight:800;margin:19px 0 9px">备选门店</div>
+    ${ss.slice(1,4).map(s=>`<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--line)">
+      <span>${s.storeName}</span><b>${s.distance} 米</b></div>`).join('')||'<div style="font-size:13px;color:var(--ink3)">范围内无其他门店</div>'}
+    <div class="note e"><b>能力边界声明：</b>麦当劳 MCP Server <b>不提供门店实时客流、排队时长或繁忙度数据</b>。本推荐仅基于距离、营业状态、预约能力与取餐方式推导，不含实时路况耗时与排队预估。</div>
+    <div class="note o"><b>下单前必做：</b>将最终订单金额交由 <code>calculate-price</code> 官方回验，并在用户确认后再调用 <code>create-order</code>。<code>create-order</code> 会真实下单并产生费用。</div></div>`;
+  });
+}
+
+/* ============================================================
+   启动
+   ============================================================ */
+/* 种子数据已内联为常量：不再依赖相对路径，预览链接 / 微信 / GitHub Pages 均可直接打开 */
+const SEED = {"_meta": {"source": "M-China/mcd-mcp-server", "storeCode": "3390081", "storeName": "麦当劳长沙五一路平和堂餐厅", "capturedAt": "2026-10-12T17:16:51+08:00", "note": "本文件为从麦当劳 MCP Server 实测抓取的种子数据，仅供看板离线演示。实际使用时应实时调用 MCP 工具获取。", "imageCount": 121, "menuOrderSource": "MCP query-meals categories 原始返回顺序"}, "stores": [{"storeCode": "3390081", "storeName": "麦当劳长沙五一路平和堂餐厅", "address": "黄兴中路88号平和堂商厦负一楼", "distance": 196, "businessStatus": true, "businessStartTime": "00:00", "businessEndTime": "23:59", "reservation": true}, {"storeCode": "3390272", "storeName": "麦当劳长沙中山路潮宗街餐厅", "address": "黄兴北路与中山路交汇处", "distance": 530, "businessStatus": true, "businessStartTime": "07:00", "businessEndTime": "00:00", "reservation": true}, {"storeCode": "3390089", "storeName": "麦当劳长沙九龙仓餐厅", "address": "东牌楼长沙国金中心商场地下一层LG114-LG115号商铺", "distance": 553, "businessStatus": true, "businessStartTime": "10:30", "businessEndTime": "22:00", "reservation": true}, {"storeCode": "3390171", "storeName": "麦当劳长沙解放西路餐厅", "address": "解放西路世纪情大厦", "distance": 591, "businessStatus": true, "businessStartTime": "00:00", "businessEndTime": "23:59", "reservation": true}, {"storeCode": "3390222", "storeName": "麦当劳长沙开福万达餐厅", "address": "中山路589号（开福万达广场4号门商场内1楼右转1013A麦当劳餐厅）", "distance": 632, "businessStatus": true, "businessStartTime": "07:00", "businessEndTime": "22:00", "reservation": false}], "menu": {"9900005456": {"name": "麦辣鸡腿汉堡三件套", "currentPrice": 33.5, "originalPrice": 46, "cat": "鸡肉汉堡\n/卷", "tags": ["套餐", "立省10.5元起"], "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/20260824/product/MS_9900005456_320.png"}, "511781": {"name": "培根安格斯厚牛堡", "currentPrice": 34.5, "originalPrice": 34.5, "cat": "安格斯MAX\n厚牛堡", "tags": ["单品", "100%安格斯牛肉"], "kcal": 707, "image": "https://menu-img.mcd.cn/pcm/prod/menu/20260309/product/MS_511781_320.png"}, "511782": {"name": "芝士安格斯厚牛堡", "currentPrice": 31.5, "originalPrice": 31.5, "cat": "安格斯MAX\n厚牛堡", "tags": ["单品", "100%安格斯牛肉"], "kcal": 696, "image": "https://menu-img.mcd.cn/pcm/prod/menu/20260309/product/MS_511782_320.png"}, "2430": {"name": "【美汁源】“黄金橙橙”", "currentPrice": 13, "originalPrice": 13, "cat": "饮品", "tags": ["冷饮"], "kcal": 165, "image": "https://menu-img.mcd.cn/pcm/prod/menu/20240904/product/MS_2430_320.png"}, "521986": {"name": "马苏里拉拉丝芝士条", "currentPrice": 11, "originalPrice": 15, "cat": "小食甜品\n/其他", "tags": ["上新", "趁热拉丝", "奶香醇厚"], "discountType": "促销优惠", "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/ProductPool/product/MS_G521986_320.png"}, "9900011056": {"name": "全明星双人分享餐八件套", "currentPrice": 49.9, "originalPrice": 114.5, "cat": "小食拼盘\n/多人餐", "tags": ["麦金卡"], "discountType": "随单购麦金卡优惠", "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/20261008/product/MS_9900011056_320.gif"}, "9900016078": {"name": "蘸酱麦麦脆汁鸡", "currentPrice": 11.9, "originalPrice": 18, "cat": "蘸酱炸鸡", "tags": ["蘸酱炸鸡", "韩式芝士风味酱上新"], "kcal": 328, "image": "https://menu-img.mcd.cn/pcm/prod/menu/ProductPool/product/MS_9900016078_320.png"}, "9900016076": {"name": "“我就喜欢”鸡薯双全盒", "currentPrice": 15.9, "originalPrice": 28.5, "cat": "人气热卖", "tags": ["心形薯饼同款比心"], "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/ProductPool/product/MS_9900016076_320.png"}, "9900016077": {"name": "蘸酱炸鸡", "currentPrice": 11.9, "originalPrice": 17.5, "cat": "人气热卖", "tags": ["韩式芝士风味酱上新"], "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/ProductPool/product/MS_9900016077_320.gif"}, "521750": {"name": "泷盐星星麦旋风", "currentPrice": 16.5, "originalPrice": 16.5, "cat": "小食甜品\n/其他", "tags": ["冰淇淋", "素龙饼干"], "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/ProductPool/product/MS_G521750_320.gif"}, "9900016075": {"name": "龙焰芝士棒鸡腿堡三件套", "currentPrice": 29.9, "originalPrice": 50.5, "cat": "鸡肉汉堡\n/卷", "tags": ["上新", "浓郁奶香拉丝芝士"], "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/ProductPool/product/MS_9900016075_320.png"}, "9900016073": {"name": "龙焰鸡腿堡三件套", "currentPrice": 26.9, "originalPrice": 47.5, "cat": "鸡肉汉堡\n/卷", "tags": ["上新", "韩式辣椒黄油风味"], "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/ProductPool/product/MS_9900016073_320.png"}, "9900005460": {"name": "麦香鱼套餐", "currentPrice": 33.5, "originalPrice": 46, "cat": "巨无霸\n牛鱼肉堡", "tags": ["套餐", "麦香鱼系列"], "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/20260824/product/MS_G504968_320.png"}, "9900005462": {"name": "板烧鸡腿堡三件套", "currentPrice": 34.5, "originalPrice": 47, "cat": "鸡肉汉堡\n/卷", "tags": ["套餐", "新升级", "更多汁"], "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/20260824/product/MS_9900005462_320.png"}, "3755": {"name": "纯牛奶(盒装)", "currentPrice": 10.5, "originalPrice": 10.5, "cat": "饮品", "tags": [], "kcal": 129, "image": "https://menu-img.mcd.cn/pcm/prod/menu/20240731/product/MS_3755_320.png"}, "9900005464": {"name": "双层吉士汉堡套餐", "currentPrice": 34, "originalPrice": 46.5, "cat": "巨无霸\n牛鱼肉堡", "tags": ["套餐", "100%纯牛肉"], "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/20260824/product/MS_G504966_320.png"}, "9900004236": {"name": "人气超值四件套随心选", "currentPrice": 28, "originalPrice": 57, "cat": "精选单人餐", "tags": ["麦金卡"], "discountType": "随单购麦金卡优惠", "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/20260824/product/MS_9900004236_320.gif"}, "3757": {"name": "纯悦", "currentPrice": 7.5, "originalPrice": 7.5, "cat": "饮品", "tags": [], "kcal": 0, "image": "https://menu-img.mcd.cn/pcm/prod/menu/20240904/product/MS_3757_320.png"}, "9900005466": {"name": "巨无霸三件套", "currentPrice": 36.5, "originalPrice": 49, "cat": "巨无霸\n牛鱼肉堡", "tags": ["套餐", "100%纯牛肉"], "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/20260824/product/MS_9900005466_320.png"}, "521914": {"name": "“葱不求人“按摩捶痒痒挠", "currentPrice": 14.9, "originalPrice": 14.9, "cat": "小食甜品\n/其他", "tags": ["上新", "既可捶背", "又可挠痒"], "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/20261008/product/MS_521914_320.png"}, "6362": {"name": "100% 苹果汁(盒装)", "currentPrice": 11.5, "originalPrice": 11.5, "cat": "饮品", "tags": ["冷饮"], "kcal": 88, "image": "https://menu-img.mcd.cn/pcm/prod/menu/20250430/product/MS_6362_320_1745552987716.png"}, "521917": {"name": "泷愿成真麦旋风——大米风味", "currentPrice": 16.5, "originalPrice": 16.5, "cat": "小食甜品\n/其他", "tags": ["上新", "快乐旋开吃"], "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/ProductPool/product/MS_G521917_320.gif"}, "9900005449": {"name": "吉士汉堡包套餐", "currentPrice": 26, "originalPrice": 38.5, "cat": "巨无霸\n牛鱼肉堡", "tags": ["套餐", "100%纯牛肉"], "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/20260824/product/MS_G504971_320.png"}, "9900015527": {"name": "枫糖风味厚松饼猪柳堡三件套（周一）", "currentPrice": 23.9, "originalPrice": 36, "cat": "精选单人餐", "tags": ["经典精选", "全球爆款", "全天供应"], "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/ProductPool/product/MS_9900015527_320.png"}, "3010": {"name": "雪碧", "currentPrice": 9.5, "originalPrice": 9.5, "cat": "饮品", "tags": ["冷饮"], "kcal": 105, "image": "https://menu-img.mcd.cn/pcm/prod/menu/ProductPool/product/MS_G3010_320.png"}, "9900010110": {"name": "鱼牛汉堡四件套随心选", "currentPrice": 32, "originalPrice": 58.5, "cat": "精选单人餐", "tags": ["麦金卡"], "discountType": "随单购麦金卡优惠", "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/20260824/product/MS_9900010110_320.gif"}, "1106": {"name": "培根蔬萃双层牛堡", "currentPrice": 24.5, "originalPrice": 24.5, "cat": "巨无霸\n牛鱼肉堡", "tags": ["单品", "100%纯牛肉"], "kcal": 442, "image": "https://menu-img.mcd.cn/pcm/prod/menu/20260309/product/MS_1106_320.png"}, "1100": {"name": "巨无霸", "currentPrice": 25.5, "originalPrice": 25.5, "cat": "巨无霸\n牛鱼肉堡", "tags": ["单品", "100%纯牛肉"], "kcal": 513, "image": "https://menu-img.mcd.cn/pcm/prod/menu/20260309/product/MS_1100_320.png"}, "506189": {"name": "如意百宝袋", "currentPrice": 12, "originalPrice": 12, "cat": "开心乐园", "tags": ["其他"], "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/ProductPool/product/MS_506189_320.png"}, "9900005451": {"name": "麦辣鸡翅4块套餐", "currentPrice": 36.5, "originalPrice": 49, "cat": "炸鸡", "tags": ["套餐", "立省10.5元起"], "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/20260824/product/MS_G504972_320.png"}, "9900005453": {"name": "麦香鸡套餐", "currentPrice": 28, "originalPrice": 40.5, "cat": "鸡肉汉堡\n/卷", "tags": ["套餐", "立省10.5元起"], "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/20260824/product/MS_G504967_320.png"}, "507394": {"name": "牛奶", "currentPrice": 19, "originalPrice": 19, "cat": "麦咖啡™", "tags": ["其他"], "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/ProductPool/product/MS_G5073941_320.png"}, "9900008746": {"name": "鸡肉堡单品精选", "currentPrice": 23.5, "originalPrice": 23.5, "cat": "鸡肉汉堡\n/卷", "tags": ["单品", "人气"], "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/20260624/product/MS_9900008746_320.gif"}, "9900008745": {"name": "新地", "currentPrice": 12, "originalPrice": 12, "cat": "小食甜品\n/其他", "tags": ["冰淇淋"], "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/ProductPool/product/MS_9900008745_320.gif"}, "9900008747": {"name": "牛肉堡单品精选", "currentPrice": 14, "originalPrice": 14, "cat": "巨无霸\n牛鱼肉堡", "tags": ["单品", "100%纯牛肉"], "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/20260309/product/MS_9900008747_320.gif"}, "515520": {"name": "怡泉+C", "currentPrice": 11.5, "originalPrice": 11.5, "cat": "饮品", "tags": ["冷饮"], "kcal": 110, "image": "https://menu-img.mcd.cn/pcm/prod/menu/ProductPool/product/MS_G515520_320.png"}, "1120": {"name": "双层吉士汉堡", "currentPrice": 23, "originalPrice": 23, "cat": "巨无霸\n牛鱼肉堡", "tags": ["单品", "100%纯牛肉"], "kcal": 429, "image": "https://menu-img.mcd.cn/pcm/prod/menu/20260309/product/MS_1120_320.png"}, "521966": {"name": "韩式烟熏芝士风味酱", "currentPrice": 3, "originalPrice": 3, "cat": "蘸酱炸鸡", "tags": ["蘸酱", "韩式风味", "浓郁芝香"], "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/ProductPool/product/MS_521966_320.png"}, "9900016096": {"name": "蘸酱韩式甜辣酱鸡块", "currentPrice": 11.9, "originalPrice": 18, "cat": "蘸酱炸鸡", "tags": ["蘸酱炸鸡", "韩式芝士风味酱上新"], "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/ProductPool/product/MS_9900016096_320.png"}, "9900008751": {"name": "可乐", "currentPrice": 9.5, "originalPrice": 9.5, "cat": "饮品", "tags": ["冷饮"], "kcal": 147, "image": "https://menu-img.mcd.cn/pcm/prod/menu/ProductPool/product/MS_9900008751_320.gif"}, "9900006332": {"name": "薄皮V翅双拼十翅", "currentPrice": 49.9, "originalPrice": 77, "cat": "小食拼盘\n/多人餐", "tags": ["小食拼盘", "超值"], "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/20260610/product/MS_9900006332_320.png"}, "9900008752": {"name": "派", "currentPrice": 8.5, "originalPrice": 8.5, "cat": "小食甜品\n/其他", "tags": ["派", "第二份优惠"], "kcal": 232, "image": "https://menu-img.mcd.cn/pcm/prod/menu/ProductPool/product/MS_G9900008752_320.gif"}, "9900008754": {"name": "经典麦旋风", "currentPrice": 15.5, "originalPrice": 15.5, "cat": "小食甜品\n/其他", "tags": ["冰淇淋"], "kcal": 266, "image": "https://menu-img.mcd.cn/pcm/prod/menu/ProductPool/product/MS_9900008754_320.gif"}, "9900005468": {"name": "培根蔬萃双层牛堡三件套", "currentPrice": 35.5, "originalPrice": 48, "cat": "巨无霸\n牛鱼肉堡", "tags": ["套餐", "100%纯牛肉"], "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/20260824/product/MS_9900005468_320.png"}, "514782": {"name": "脆脆薯条", "currentPrice": 16, "originalPrice": 16, "cat": "小食甜品\n/其他", "tags": ["小食"], "kcal": 279, "image": "https://menu-img.mcd.cn/pcm/prod/menu/20250523/product/MS_514782_320_1747877523158.png"}, "9900006957": {"name": "安格斯厚牛堡四件套随心选", "currentPrice": 37, "originalPrice": 66, "cat": "精选单人餐", "tags": ["麦金卡"], "discountType": "随单购麦金卡优惠", "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/20260824/product/MS_9900006957_320.png"}, "1401": {"name": "麦乐鸡", "currentPrice": 14, "originalPrice": 14, "cat": "炸鸡", "tags": ["单品", "人气"], "kcal": 170, "image": "https://menu-img.mcd.cn/pcm/prod/menu/20260529/product/MS_G1401_320.png"}, "9900016082": {"name": "心形薯饼5块", "currentPrice": 14.5, "originalPrice": 14.5, "cat": "小食甜品\n/其他", "tags": ["上新", "口口酥脆", "含一份蘸酱"], "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/ProductPool/product/MS_9900016082_320.png"}, "1406": {"name": "板烧鸡腿堡", "currentPrice": 23.5, "originalPrice": 23.5, "cat": "鸡肉汉堡\n/卷", "tags": ["单品", "板烧滋滋", "多汁惹味"], "kcal": 391, "image": "https://menu-img.mcd.cn/pcm/prod/menu/20241008/product/MS_1406_320.png"}, "514850": {"name": "抹茶阿芙佳朵", "currentPrice": 15, "originalPrice": 15, "cat": "麦咖啡™", "tags": ["其他"], "kcal": 147, "image": "https://menu-img.mcd.cn/pcm/prod/menu/ProductPool/product/MS_514850_320.png"}, "9900005413": {"name": "双层深海鳕鱼堡三件套", "currentPrice": 35, "originalPrice": 47.5, "cat": "巨无霸\n牛鱼肉堡", "tags": ["套餐", "麦香鱼系列"], "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/ProductPool/product/MS_G504962_320.png"}, "514851": {"name": "咖啡阿芙佳朵", "currentPrice": 15, "originalPrice": 15, "cat": "麦咖啡™", "tags": ["其他"], "kcal": 139, "image": "https://menu-img.mcd.cn/pcm/prod/menu/20250324/product/MS_514851_320.png"}, "9900016309": {"name": "龙焰鸡腿堡四件套", "currentPrice": 29, "originalPrice": 57, "cat": "鸡肉汉堡\n/卷", "tags": ["麦金卡"], "discountType": "随单购麦金卡优惠", "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/ProductPool/product/MS_9900016309_320.png"}, "9900015856": {"name": "“泷”运当头四件套", "currentPrice": 91.7, "originalPrice": 91.7, "cat": "精选单人餐", "tags": ["经典精选", "汪苏泷限量周边"], "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/20261008/product/MS_9900015856_320.gif"}, "521548": {"name": "菠萝雪冰", "currentPrice": 9.9, "originalPrice": 23, "cat": "麦咖啡™", "tags": ["限定特惠"], "discountType": "促销优惠", "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/20260520/product/MS_521548_320.png"}, "9900015730": {"name": "BFF四宫格小食盘", "currentPrice": 39.8, "originalPrice": 54.5, "cat": "小食拼盘\n/多人餐", "tags": ["小食拼盘", "随心拼"], "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/ProductPool/product/MS_9900015730_320.gif"}, "9900016311": {"name": "龙焰美味四件套", "currentPrice": 29, "originalPrice": 57, "cat": "人气热卖", "tags": [], "discountType": "随单购麦金卡优惠", "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/ProductPool/product/MS_9900016311_320.gif"}, "9900016310": {"name": "龙焰芝士棒鸡腿堡四件套", "currentPrice": 32, "originalPrice": 57, "cat": "鸡肉汉堡\n/卷", "tags": ["麦金卡"], "discountType": "随单购麦金卡优惠", "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/ProductPool/product/MS_9900016310_320.png"}, "521156": {"name": "那么大鸡排（椒盐风味）", "currentPrice": 14, "originalPrice": 14, "cat": "炸鸡", "tags": ["单品"], "kcal": 385, "image": "https://menu-img.mcd.cn/pcm/prod/menu/20260101/product/MS_521156_320.png"}, "9900004835": {"name": "麦乐鸡套餐", "currentPrice": 25, "originalPrice": 37.5, "cat": "炸鸡", "tags": ["套餐", "立省10.5元起"], "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/20260824/product/MS_G504969_320.png"}, "510488": {"name": "燕麦奶", "currentPrice": 21, "originalPrice": 21, "cat": "麦咖啡™", "tags": ["其他"], "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/ProductPool/product/MS_G510489_320.png"}, "4648": {"name": "不素之霸双层牛堡", "currentPrice": 26.5, "originalPrice": 26.5, "cat": "巨无霸\n牛鱼肉堡", "tags": ["单品", "100%纯牛肉"], "kcal": 493, "image": "https://menu-img.mcd.cn/pcm/prod/menu/20260309/product/MS_4648_320.png"}, "9900003586": {"name": "双层深海鳕鱼堡", "currentPrice": 24, "originalPrice": 24, "cat": "巨无霸\n牛鱼肉堡", "tags": ["单品", "麦香鱼系列"], "kcal": 485, "image": "https://menu-img.mcd.cn/pcm/prod/menu/ProductPool/product/MS_9900003586_320.png"}, "9900000890": {"name": "板烧鸡腿堡四件套", "currentPrice": 28, "originalPrice": 57, "cat": "鸡肉汉堡\n/卷", "tags": ["麦金卡"], "discountType": "随单购麦金卡优惠", "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/20260824/product/MS_9900000890_320.png"}, "9900015729": {"name": "蘸酱BFF四宫格小食盘", "currentPrice": 42.8, "originalPrice": 57.5, "cat": "蘸酱炸鸡", "tags": ["蘸酱炸鸡新吃法"], "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/ProductPool/product/MS_9900015729_320.gif"}, "521950": {"name": "蓝莓爆爆珠麦旋风", "currentPrice": 16.5, "originalPrice": 16.5, "cat": "人气热卖", "tags": ["蓝莓"], "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/ProductPool/product/MS_G521950_320.gif"}, "9900013304": {"name": "人气经典随心配", "currentPrice": 14.9, "originalPrice": 14.9, "cat": "随心配\n1+1", "tags": ["超值百种组合随心配"], "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/ProductPool/product/MS_9900013304_320.png"}, "9900015726": {"name": "韩式甜辣酱鸡块8块", "currentPrice": 19.9, "originalPrice": 30, "cat": "小食拼盘\n/多人餐", "tags": ["上新", "韩式风味"], "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/20260815/product/MS_9900015726_320.png"}, "521797": {"name": "北美招牌牧场酱", "currentPrice": 3, "originalPrice": 3, "cat": "蘸酱炸鸡", "tags": ["蘸酱", "使用动物奶油"], "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/20260824/product/MS_521797_320.png"}, "521951": {"name": "灰焰圆筒", "currentPrice": 5, "originalPrice": 5, "cat": "小食甜品\n/其他", "tags": ["上新", "灰焰"], "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/ProductPool/product/MS_G521951_320.gif"}, "9900011126": {"name": "酥脆无双套餐", "currentPrice": 20, "originalPrice": 20, "cat": "500\n大卡套餐", "tags": [], "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/20260701/product/MS_9900011126_320.png"}, "521952": {"name": "龙焰鸡腿堡", "currentPrice": 24, "originalPrice": 24, "cat": "鸡肉汉堡\n/卷", "tags": ["上新", "韩式辣椒黄油风味"], "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/ProductPool/product/MS_521952_320.png"}, "9900015602": {"name": "大堡口福三件套", "currentPrice": 22.9, "originalPrice": 47, "cat": "大堡口福\n单人餐", "tags": ["大口吃肉好快乐"], "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/ProductPool/product/MS_9900015602_320.png"}, "521953": {"name": "龙焰芝士棒鸡腿堡", "currentPrice": 27, "originalPrice": 27, "cat": "鸡肉汉堡\n/卷", "tags": ["上新", "浓郁奶香拉丝芝士"], "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/ProductPool/product/MS_521953_320.png"}, "521799": {"name": "日式鲜磨山葵酱", "currentPrice": 3, "originalPrice": 3, "cat": "蘸酱炸鸡", "tags": ["蘸酱", "优选高原山葵"], "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/ProductPool/product/MS_521799_320.png"}, "9900011128": {"name": "“堡”你欢乐套餐", "currentPrice": 28, "originalPrice": 42.5, "cat": "500\n大卡套餐", "tags": ["粉丝之选"], "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/ProductPool/product/MS_9900011128_320.png"}, "521316": {"name": "高达吉士双牛堡", "currentPrice": 22.5, "originalPrice": 22.5, "cat": "巨无霸\n牛鱼肉堡", "tags": ["单品", "100%纯牛肉", "人气"], "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/20260309/product/MS_521316_320.png"}, "9900011121": {"name": "“苹”水相“鱼”套餐", "currentPrice": 36, "originalPrice": 54, "cat": "500\n大卡套餐", "tags": ["粉丝之选"], "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/ProductPool/product/MS_9900011121_320.png"}, "9900015568": {"name": "精选超值随心配", "currentPrice": 13.9, "originalPrice": 13.9, "cat": "随心配\n1+1", "tags": ["超值百种组合随心配"], "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/ProductPool/product/MS_9900015568_320.png"}, "9900011123": {"name": "“辣”么快乐套餐", "currentPrice": 24, "originalPrice": 36.5, "cat": "500\n大卡套餐", "tags": [], "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/ProductPool/product/MS_9900011123_320.png"}, "521836": {"name": "柠檬脆脆麦旋风", "currentPrice": 16.5, "originalPrice": 16.5, "cat": "小食甜品\n/其他", "tags": ["上新", "一口柠香"], "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/ProductPool/product/MS_G521836_320.gif"}, "1700": {"name": "麦辣鸡翅", "currentPrice": 15, "originalPrice": 15, "cat": "炸鸡", "tags": ["单品", "黄金酥脆", "鲜嫩多汁"], "kcal": 224, "image": "https://menu-img.mcd.cn/pcm/prod/menu/20260325/product/MS_G1700_320.png"}, "9900000888": {"name": "巨无霸四件套", "currentPrice": 32, "originalPrice": 58.5, "cat": "巨无霸\n牛鱼肉堡", "tags": ["麦金卡"], "discountType": "随单购麦金卡优惠", "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/20260824/product/MS_9900000888_320.png"}, "9900000886": {"name": "不素之霸双层牛堡四件套", "currentPrice": 32, "originalPrice": 58.5, "cat": "巨无霸\n牛鱼肉堡", "tags": ["麦金卡"], "discountType": "随单购麦金卡优惠", "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/20260824/product/MS_9900000886_320.png"}, "9900000885": {"name": "培根蔬萃双层牛堡四件套", "currentPrice": 32, "originalPrice": 58.5, "cat": "巨无霸\n牛鱼肉堡", "tags": ["麦金卡"], "discountType": "随单购麦金卡优惠", "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/20260824/product/MS_9900000885_320.png"}, "4810": {"name": "薯条", "currentPrice": 13.5, "originalPrice": 13.5, "cat": "小食甜品\n/其他", "tags": ["小食"], "kcal": 289, "image": "https://menu-img.mcd.cn/pcm/prod/menu/20250523/product/MS_G4810_320_1747877491921.png"}, "510479": {"name": "燕麦奶铁", "currentPrice": 9.9, "originalPrice": 23, "cat": "麦咖啡™", "tags": ["麦咖啡™咖啡", "鲜萃咖啡"], "discountType": "随单购麦金卡优惠", "kcal": 148, "image": "https://menu-img.mcd.cn/pcm/prod/menu/20260422/product/MS_G510481_320.png"}, "9900000882": {"name": "芝士安格斯厚牛堡四件套", "currentPrice": 37, "originalPrice": 66, "cat": "安格斯MAX\n厚牛堡", "tags": ["麦金卡"], "discountType": "随单购麦金卡优惠", "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/20260824/product/MS_9900000882_320.png"}, "9900005411": {"name": "不素之霸双层牛堡三件套", "currentPrice": 37.5, "originalPrice": 50, "cat": "巨无霸\n牛鱼肉堡", "tags": ["套餐", "100%纯牛肉"], "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/ProductPool/product/MS_9900005411_320.png"}, "9900000881": {"name": "培根安格斯厚牛堡四件套", "currentPrice": 37, "originalPrice": 66, "cat": "安格斯MAX\n厚牛堡", "tags": ["麦金卡"], "discountType": "随单购麦金卡优惠", "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/20260824/product/MS_9900000881_320.png"}, "9900004064": {"name": "精选单人餐三件套", "currentPrice": 34.5, "originalPrice": 46, "cat": "人气热卖", "tags": ["爆款"], "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/20260824/product/MS_9900004064_320.gif"}, "9900005439": {"name": "开心亲子双人餐", "currentPrice": 59.5, "originalPrice": 59.5, "cat": "开心乐园", "tags": ["麦亲子餐", "童年童款"], "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/20240904/product/MS_9900005439_320.png"}, "9900015516": {"name": "枫糖风味厚松饼猪柳蛋堡三件套（周一）", "currentPrice": 27.9, "originalPrice": 40, "cat": "精选单人餐", "tags": ["经典精选", "全球爆款", "全天供应"], "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/ProductPool/product/MS_9900015516_320.png"}, "1440": {"name": "麦辣鸡腿汉堡", "currentPrice": 22.5, "originalPrice": 22.5, "cat": "鸡肉汉堡\n/卷", "tags": ["单品", "人气经典", "外酥里嫩"], "kcal": 485, "image": "https://menu-img.mcd.cn/pcm/prod/menu/20260325/product/MS_1440_320.png"}, "521886": {"name": "枫糖风味厚松饼猪柳蛋堡（周一）", "currentPrice": 22, "originalPrice": 22, "cat": "巨无霸\n牛鱼肉堡", "tags": ["单品", "全球爆款", "全天供应"], "kcal": 387, "image": "https://menu-img.mcd.cn/pcm/prod/menu/20261008/product/MS_521886_320.png"}, "521887": {"name": "枫糖风味厚松饼猪柳堡（周一）", "currentPrice": 18, "originalPrice": 18, "cat": "巨无霸\n牛鱼肉堡", "tags": ["单品", "全球爆款", "全天供应"], "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/20261008/product/MS_521887_320.png"}, "515280": {"name": "阳光柠檬红茶", "currentPrice": 9.5, "originalPrice": 9.5, "cat": "饮品", "tags": ["冷饮"], "kcal": 117, "image": "https://menu-img.mcd.cn/pcm/prod/menu/ProductPool/product/MS_515280_320.png"}, "9900016058": {"name": "鱼排堡开心乐园餐", "currentPrice": 24, "originalPrice": 24, "cat": "开心乐园", "tags": ["开心乐园餐", "童年童款"], "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/ProductPool/product/MS_9900016058_320.png"}, "9900016056": {"name": "麦乐鸡开心乐园餐", "currentPrice": 25, "originalPrice": 25, "cat": "开心乐园", "tags": ["开心乐园餐", "童年童款"], "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/ProductPool/product/MS_9900016056_320.png"}, "9900016057": {"name": "汉堡开心乐园餐", "currentPrice": 23.5, "originalPrice": 23.5, "cat": "开心乐园", "tags": ["开心乐园餐", "童年童款"], "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/ProductPool/product/MS_9900016057_320.png"}, "9900016055": {"name": "开心亲子双人餐", "currentPrice": 59.5, "originalPrice": 59.5, "cat": "开心乐园", "tags": ["开心亲子餐", "童年童款"], "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/ProductPool/product/MS_9900016055_320.png"}, "9900009242": {"name": "“苹板”支撑Pro套餐", "currentPrice": 39.5, "originalPrice": 53.5, "cat": "500\n大卡套餐", "tags": [], "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/ProductPool/product/MS_9900009242_320.png"}, "9900009245": {"name": "牛气满满套餐", "currentPrice": 35, "originalPrice": 47.5, "cat": "500\n大卡套餐", "tags": [], "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/ProductPool/product/MS_9900009245_320.png"}, "507387": {"name": "卡布奇诺", "currentPrice": 21, "originalPrice": 21, "cat": "麦咖啡™", "tags": ["麦咖啡™咖啡"], "kcal": 223, "image": "https://menu-img.mcd.cn/pcm/prod/menu/20250324/product/MS_G507388_320.png"}, "9900000893": {"name": "双层深海鳕鱼堡四件套", "currentPrice": 32, "originalPrice": 58.5, "cat": "巨无霸\n牛鱼肉堡", "tags": ["麦金卡"], "discountType": "随单购麦金卡优惠", "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/20260824/product/MS_9900000893_320.png"}, "9900005321": {"name": "BFF四宫格小食盘双人餐", "currentPrice": 62.9, "originalPrice": 122.5, "cat": "小食拼盘\n/多人餐", "tags": ["麦金卡"], "discountType": "随单购麦金卡优惠", "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/20260304/product/MS_9900005321_320.png"}, "9900000891": {"name": "麦辣鸡腿堡四件套", "currentPrice": 28, "originalPrice": 57, "cat": "鸡肉汉堡\n/卷", "tags": ["麦金卡"], "discountType": "随单购麦金卡优惠", "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/20260824/product/MS_9900000891_320.png"}, "515837": {"name": "圆筒冰淇淋", "currentPrice": 5, "originalPrice": 5, "cat": "小食甜品\n/其他", "tags": ["冰淇淋"], "kcal": 93, "image": "https://menu-img.mcd.cn/pcm/prod/menu/ProductPool/product/MS_515837_320.png"}, "521817": {"name": "【美汁源】“多汁柠柠”", "currentPrice": 12, "originalPrice": 12, "cat": "饮品", "tags": ["上新", "清爽上新"], "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/20260807/product/MS_521817_320.png"}, "6102": {"name": "苹果片", "currentPrice": 7, "originalPrice": 7, "cat": "小食甜品\n/其他", "tags": ["小食"], "kcal": 32, "image": "https://menu-img.mcd.cn/pcm/prod/menu/ProductPool/product/MS_6102_320.png"}, "9900005428": {"name": "培根安格斯厚牛堡三件套", "currentPrice": 45.5, "originalPrice": 58, "cat": "安格斯MAX\n厚牛堡", "tags": ["套餐", "100%安格斯牛肉"], "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/20260824/product/MS_9900005428_320.png"}, "1450": {"name": "麦香鸡", "currentPrice": 17, "originalPrice": 17, "cat": "鸡肉汉堡\n/卷", "tags": ["单品"], "kcal": 369, "image": "https://menu-img.mcd.cn/pcm/prod/menu/ProductPool/product/MS_1450_320.png"}, "520445": {"name": "薄皮焦香V翅", "currentPrice": 16, "originalPrice": 16, "cat": "炸鸡", "tags": ["单品", "人气"], "kcal": 192, "image": "https://menu-img.mcd.cn/pcm/prod/menu/20241202/product/MS_520445_320.png"}, "520689": {"name": "鲜萃咖啡", "currentPrice": 9.5, "originalPrice": 9.5, "cat": "麦咖啡™", "tags": ["麦咖啡™咖啡", "鲜萃咖啡"], "kcal": 13, "image": "https://menu-img.mcd.cn/pcm/prod/menu/20250324/product/MS_G520688_320.gif"}, "507409": {"name": "麦咖啡™奶铁", "currentPrice": 13.9, "originalPrice": 21, "cat": "麦咖啡™", "tags": ["限定特惠", "更奶更浓"], "discountType": "促销优惠", "kcal": 148, "image": "https://menu-img.mcd.cn/pcm/prod/menu/20260422/product/MS_G507372_320.gif"}, "3505": {"name": "锡兰红茶", "currentPrice": 11.5, "originalPrice": 11.5, "cat": "饮品", "tags": ["热饮"], "kcal": 2, "image": "https://menu-img.mcd.cn/pcm/prod/menu/ProductPool/product/MS_3505_320.png"}, "1600": {"name": "麦香鱼", "currentPrice": 22.5, "originalPrice": 22.5, "cat": "巨无霸\n牛鱼肉堡", "tags": ["单品", "麦香鱼系列"], "kcal": 325, "image": "https://menu-img.mcd.cn/pcm/prod/menu/20260101/product/MS_1600_320.png"}, "507411": {"name": "麦咖啡™美式", "currentPrice": 11.9, "originalPrice": 19, "cat": "麦咖啡™", "tags": ["限定特惠"], "discountType": "促销优惠", "kcal": 14, "image": "https://menu-img.mcd.cn/pcm/prod/menu/20260422/product/MS_G507374_320.gif"}, "9900005430": {"name": "芝士安格斯厚牛堡三件套", "currentPrice": 42.5, "originalPrice": 55, "cat": "安格斯MAX\n厚牛堡", "tags": ["套餐", "100%安格斯牛肉"], "kcal": null, "image": "https://menu-img.mcd.cn/pcm/prod/menu/20260824/product/MS_9900005430_320.png"}, "4437": {"name": "玉米杯", "currentPrice": 13, "originalPrice": 13, "cat": "小食甜品\n/其他", "tags": ["小食"], "kcal": 87, "image": "https://menu-img.mcd.cn/pcm/prod/menu/ProductPool/product/MS_G4437_320.png"}, "9900005432": {"name": "麦麦脆汁鸡1块", "currentPrice": 15, "originalPrice": 15, "cat": "炸鸡", "tags": ["单品"], "kcal": 328, "image": "https://menu-img.mcd.cn/pcm/prod/menu/ProductPool/product/MS_9900005432_320.png"}}, "nutrition": {"猪柳麦满分": {"kcal": 308, "protein": 16, "fat": 16, "carb": 24, "sodium": 781, "calcium": 213}, "猪柳蛋麦满分": {"kcal": 387, "protein": 23, "fat": 21, "carb": 25, "sodium": 846, "calcium": 243}, "中薯条": {"kcal": 289, "protein": 4, "fat": 12, "carb": 38, "sodium": 165, "calcium": 18}, "大薯条": {"kcal": 379, "protein": 6, "fat": 16, "carb": 50, "sodium": 216, "calcium": 23}, "小薯条": {"kcal": 210, "protein": 3, "fat": 9, "carb": 28, "sodium": 120, "calcium": 13}, "迷你薯条": {"kcal": 106, "protein": 2, "fat": 4, "carb": 14, "sodium": 61, "calcium": 6}, "圆筒冰淇淋": {"kcal": 93, "protein": 2, "fat": 3, "carb": 14, "sodium": 36, "calcium": 77}, "麦乐鸡5块": {"kcal": 213, "protein": 12, "fat": 12, "carb": 13, "sodium": 422, "calcium": 9}, "大杯玉米杯": {"kcal": 87, "protein": 4, "fat": 1, "carb": 12, "sodium": 2, "calcium": 10}, "小杯玉米杯": {"kcal": 53, "protein": 2, "fat": 1, "carb": 7, "sodium": 1, "calcium": 6}, "麦辣鸡翅-2块": {"kcal": 224, "protein": 13, "fat": 15, "carb": 9, "sodium": 537, "calcium": 13}, "奥利奥麦旋风": {"kcal": 266, "protein": 5, "fat": 9, "carb": 40, "sodium": 116, "calcium": 185}, "香芋派": {"kcal": 232, "protein": 2, "fat": 12, "carb": 28, "sodium": 159, "calcium": 7}, "菠萝派": {"kcal": 221, "protein": 2, "fat": 11, "carb": 27, "sodium": 147, "calcium": 5}, "吉士汉堡包": {"kcal": 294, "protein": 16, "fat": 12, "carb": 30, "sodium": 673, "calcium": 144}, "双层吉士汉堡": {"kcal": 429, "protein": 27, "fat": 22, "carb": 31, "sodium": 1017, "calcium": 232}, "麦香鸡": {"kcal": 369, "protein": 15, "fat": 17, "carb": 39, "sodium": 731, "calcium": 73}, "麦香鱼": {"kcal": 325, "protein": 16, "fat": 13, "carb": 35, "sodium": 556, "calcium": 99}, "麦辣鸡腿汉堡": {"kcal": 485, "protein": 24, "fat": 24, "carb": 42, "sodium": 1208, "calcium": 154}, "板烧鸡腿堡": {"kcal": 391, "protein": 23, "fat": 17, "carb": 35, "sodium": 1041, "calcium": 93}, "巨无霸": {"kcal": 513, "protein": 27, "fat": 26, "carb": 42, "sodium": 961, "calcium": 171}, "培根蔬萃双层牛堡": {"kcal": 442, "protein": 24, "fat": 23, "carb": 34, "sodium": 728, "calcium": 73}, "可乐中杯": {"kcal": 147, "protein": 0, "fat": 0, "carb": 36, "sodium": 0, "calcium": 10}, "可乐大杯": {"kcal": 224, "protein": 0, "fat": 0, "carb": 55, "sodium": 0, "calcium": 15}, "可乐小杯": {"kcal": 107, "protein": 0, "fat": 0, "carb": 26, "sodium": 0, "calcium": 7}, "雪碧中杯": {"kcal": 105, "protein": 0, "fat": 0, "carb": 26, "sodium": 29, "calcium": 0}, "无糖可口可乐中杯": {"kcal": 0, "protein": 0, "fat": 0, "carb": 1, "sodium": 35, "calcium": 0}, "脆薯饼": {"kcal": 146, "protein": 1, "fat": 9, "carb": 14, "sodium": 311, "calcium": 7}, "脆香油条": {"kcal": 202, "protein": 5, "fat": 12, "carb": 19, "sodium": 230, "calcium": 18}, "100%苹果汁": {"kcal": 88, "protein": 0, "fat": 0, "carb": 21, "sodium": 0, "calcium": 0}, "汉堡包": {"kcal": 248, "protein": 13, "fat": 8, "carb": 29, "sodium": 492, "calcium": 61}, "麦乐鸡4块": {"kcal": 170, "protein": 10, "fat": 10, "carb": 11, "sodium": 337, "calcium": 7}, "纯牛奶": {"kcal": 129, "protein": 7, "fat": 7, "carb": 10, "sodium": 73, "calcium": 231}, "不素之霸双层牛堡": {"kcal": 493, "protein": 28, "fat": 27, "carb": 34, "sodium": 1012, "calcium": 75}, "双层深海鳕鱼堡": {"kcal": 485, "protein": 28, "fat": 21, "carb": 46, "sodium": 917, "calcium": 147}, "儿童鱼排堡": {"kcal": 269, "protein": 15, "fat": 6, "carb": 36, "sodium": 442, "calcium": 58}, "培根安格斯厚牛堡": {"kcal": 707, "protein": 34, "fat": 44, "carb": 43, "sodium": 1037, "calcium": 161}, "芝士安格斯厚牛堡": {"kcal": 696, "protein": 32, "fat": 44, "carb": 43, "sodium": 897, "calcium": 150}, "那么大鸡排": {"kcal": 385, "protein": 24, "fat": 21, "carb": 24, "sodium": 996, "calcium": 13}, "双层吉士安格斯": {"kcal": 1003, "protein": 58, "fat": 65, "carb": 46, "sodium": 1373, "calcium": 251}, "鲜蔬蛋沙拉叠叠卷": {"kcal": 266, "protein": 11, "fat": 14, "carb": 24, "sodium": 518, "calcium": 62}, "鸡肉蛋沙拉叠叠卷": {"kcal": 387, "protein": 17, "fat": 21, "carb": 31, "sodium": 842, "calcium": 67}, "麦麦脆汁鸡-琵琶腿": {"kcal": 328, "protein": 21, "fat": 20, "carb": 16, "sodium": 905, "calcium": 24}, "麦麦脆汁鸡-带骨里脊": {"kcal": 332, "protein": 22, "fat": 18, "carb": 16, "sodium": 812, "calcium": 25}, "麦麦趣鸡球": {"kcal": 266, "protein": 17, "fat": 13, "carb": 19, "sodium": 789, "calcium": 13}, "薄皮焦香V翅": {"kcal": 192, "protein": 17, "fat": 11, "carb": 6, "sodium": 594, "calcium": 15}, "厚牛堡": {"kcal": 707, "protein": 34, "fat": 44, "carb": 43, "sodium": 1037, "calcium": 161}, "热牛奶中杯": {"kcal": 176, "protein": 10, "fat": 8, "carb": 15, "sodium": 101, "calcium": 319}, "冰牛奶中杯": {"kcal": 224, "protein": 13, "fat": 11, "carb": 19, "sodium": 128, "calcium": 406}, "冰燕麦奶中杯": {"kcal": 199, "protein": 4, "fat": 8, "carb": 26, "sodium": 145, "calcium": 438}, "卡布奇诺中杯": {"kcal": 167, "protein": 9, "fat": 7, "carb": 15, "sodium": 88, "calcium": 285}, "冰美式中杯": {"kcal": 13, "protein": 1, "fat": 0, "carb": 2, "sodium": 0, "calcium": 7}, "苹果片": {"kcal": 32, "protein": 0, "fat": 0, "carb": 7, "sodium": 0, "calcium": 18}, "小杯鲜萃咖啡": {"kcal": 15, "protein": 1, "fat": 0, "carb": 3, "sodium": 2, "calcium": 6}, "锡兰红茶": {"kcal": 2, "protein": 0, "fat": 0, "carb": 0, "sodium": 0, "calcium": 5}, "原味板烧鸡腿麦满分": {"kcal": 246, "protein": 15, "fat": 9, "carb": 25, "sodium": 611, "calcium": 133}, "火腿扒麦满分": {"kcal": 261, "protein": 14, "fat": 12, "carb": 24, "sodium": 608, "calcium": 131}, "原味板烧鸡腿炒双蛋堡": {"kcal": 419, "protein": 27, "fat": 21, "carb": 30, "sodium": 715, "calcium": 116}, "脆脆薯条": {"kcal": 279, "protein": 4, "fat": 14, "carb": 32, "sodium": 540, "calcium": 13}, "椒盐风味大鸡排": {"kcal": 385, "protein": 24, "fat": 21, "carb": 24, "sodium": 996, "calcium": 13}, "原味板烧鸡腿堡": {"kcal": 391, "protein": 23, "fat": 17, "carb": 35, "sodium": 1041, "calcium": 93}}, "pointsProducts": [{"spuId": 17073, "spuName": "6.9元可乐麦炫酷", "point": 50, "selling": "6.9元可乐麦炫酷1份", "downTime": "2026-12-30 23:59:59", "catName": "到店专用"}, {"spuId": 17074, "spuName": "6.9元香芋派/菠萝派任选", "point": 50, "selling": "6.9元香芋派/菠萝派任选1份", "downTime": "2026-12-30 23:59:59", "catName": "到店专用"}, {"spuId": 17076, "spuName": "10.9元指定小食任选", "point": 100, "selling": "10.9元指定小食任选1份", "downTime": "2026-12-30 23:59:59", "catName": "到店专用"}, {"spuId": 17075, "spuName": "3.9元圆筒冰淇淋", "point": 100, "selling": "3.9元圆筒冰淇淋1份", "downTime": "2026-12-30 23:59:59", "catName": "到店专用"}, {"spuId": 17078, "spuName": "16.9元2份麦辣鸡翅", "point": 200, "selling": "16.9元2份麦辣鸡翅", "downTime": "2026-12-30 23:59:59", "catName": "到店专用"}, {"spuId": 17077, "spuName": "10.9元指定小食任选", "point": 200, "selling": "10.9元指定小食任选1份", "downTime": "2026-12-30 23:59:59", "catName": "到店专用"}, {"spuId": 17080, "spuName": "17.9元板烧可乐组合", "point": 500, "selling": "17.9元板烧可乐组合", "downTime": "2026-12-30 23:59:59", "catName": "到店专用"}, {"spuId": 17079, "spuName": "16.9元麦辣可乐组合", "point": 500, "selling": "16.9元麦辣可乐组合", "downTime": "2026-12-30 23:59:59", "catName": "到店专用"}, {"spuId": 17081, "spuName": "21.9元巨无霸可乐组合", "point": 800, "selling": "21.9元巨无霸可乐组合", "downTime": "2026-12-30 23:59:59", "catName": "到店专用"}], "coupons": {"claimed": ["中薯条买一送一", "王牌小食拼", "巧克力味厚松饼猪柳蛋套餐", "巧克力味厚松饼猪柳蛋套餐"], "claimable": ["免费脆薯饼", "人气麦旋风买一送一", "9.9元中杯冰美式"]}, "account": {"availablePoint": 538.2, "accumulativePoint": 717.5, "usedPoint": 40, "expiredPoint": 139.3, "currency": "麦享会积分"}, "menuOrder": [{"name": "人气热卖", "codes": ["9900016076", "9900016075", "9900016073", "9900016077", "9900016311", "9900004064", "521950"]}, {"name": "精选单人餐", "codes": ["9900015856", "9900015516", "9900015527", "9900004064", "9900004236", "9900010110", "9900006957"]}, {"name": "鸡肉汉堡/卷", "codes": ["9900016075", "9900016073", "521953", "521952", "9900016310", "9900016309", "9900000891", "9900000890", "9900005462", "9900005456", "9900005453", "1440", "1406", "1450", "9900008746"]}, {"name": "小食拼盘/多人餐", "codes": ["9900016076", "9900015726", "9900006332", "9900015730", "9900011056", "9900005321"]}, {"name": "蘸酱炸鸡", "codes": ["9900016078", "9900016096", "9900015729", "521966", "521799", "521797"]}, {"name": "随心配 1+1", "codes": ["9900013304", "9900015568"]}, {"name": "大堡口福 单人餐", "codes": ["9900015602"]}, {"name": "巨无霸 牛鱼肉堡", "codes": ["9900000888", "9900000886", "9900000885", "9900000893", "9900005411", "9900005466", "9900005468", "9900005413", "9900005460", "9900005464", "9900005449", "521886", "521887", "1100", "9900003586", "1600", "4648", "1106", "1120", "521316", "9900008747"]}, {"name": "安格斯MAX 厚牛堡", "codes": ["9900000881", "9900000882", "9900005428", "9900005430", "511781", "511782"]}, {"name": "炸鸡", "codes": ["521966", "521797", "521799", "9900005451", "9900004835", "1700", "520445", "1401", "521156", "9900005432"]}, {"name": "小食甜品/其他", "codes": ["521986", "9900016082", "521950", "521951", "521914", "521917", "521836", "4810", "514782", "4437", "6102", "521750", "9900008754", "9900008745", "515837", "9900008752"]}, {"name": "开心乐园", "codes": ["9900016057", "9900016058", "9900016056", "9900005439", "9900016055", "506189"]}, {"name": "麦咖啡", "codes": ["507411", "507409", "521548", "510479", "507387", "514851", "520689", "514850", "507394", "510488"]}, {"name": "500 大卡套餐", "codes": ["9900011128", "9900011121", "9900011126", "9900011123", "9900009245", "9900009242"]}, {"name": "饮品", "codes": ["521817", "9900008751", "3010", "515520", "2430", "515280", "3755", "6362", "3757", "520689", "3505"]}], "menuGlobalOrder": ["9900016076", "9900016075", "9900016073", "9900016077", "9900016311", "9900004064", "521950", "9900015856", "9900015516", "9900015527", "9900004236", "9900010110", "9900006957", "521953", "521952", "9900016310", "9900016309", "9900000891", "9900000890", "9900005462", "9900005456", "9900005453", "1440", "1406", "1450", "9900008746", "9900015726", "9900006332", "9900015730", "9900011056", "9900005321", "9900016078", "9900016096", "9900015729", "521966", "521799", "521797", "9900013304", "9900015568", "9900015602", "9900000888", "9900000886", "9900000885", "9900000893", "9900005411", "9900005466", "9900005468", "9900005413", "9900005460", "9900005464", "9900005449", "521886", "521887", "1100", "9900003586", "1600", "4648", "1106", "1120", "521316", "9900008747", "9900000881", "9900000882", "9900005428", "9900005430", "511781", "511782", "9900005451", "9900004835", "1700", "520445", "1401", "521156", "9900005432", "521986", "9900016082", "521951", "521914", "521917", "521836", "4810", "514782", "4437", "6102", "521750", "9900008754", "9900008745", "515837", "9900008752", "9900016057", "9900016058", "9900016056", "9900005439", "9900016055", "506189", "507411", "507409", "521548", "510479", "507387", "514851", "520689", "514850", "507394", "510488", "9900011128", "9900011121", "9900011126", "9900011123", "9900009245", "9900009242", "521817", "9900008751", "3010", "515520", "2430", "515280", "3755", "6362", "3757", "3505"]};
+Promise.resolve(SEED).then(d=>{
+  D=d;
+  Object.entries(d.menu).forEach(([k,v])=>cache[k]=v);
+  init();
+}).catch(e=>{
+  console.error(e);
+  document.getElementById('list').innerHTML=
+    '<div class="empty"><div class="emptyi">⚠</div>数据初始化失败</div>';
+});
+</script>
+</body>
+</html>
