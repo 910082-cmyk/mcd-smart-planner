@@ -1,8 +1,10 @@
-# 麦麦智配 · 麦当劳消费决策看板
+# 🍔 麦麦智配 · 麦当劳消费决策看板
 
 > 基于麦当劳官方 MCP 能力的 Web 可视化决策助手 —— 把 121 项餐品、热量、价格、优惠、门店信息，整合为「吃什么、怎么吃最划算、热量是否超标」的一站式答案。
 
-**在线体验（GitHub Pages，无需安装）：https://910082-cmyk.github.io/mcd-smart-planner/**
+![麦麦智配看板预览](assets/preview-top.png)
+
+**在线体验（GitHub Pages，无需安装）：https://910082-cmyk.github.io/mcd-smart-planner/** · 完整页面长图（含全部 121 项餐品）：[assets/preview-full.png](assets/preview-full.png)
 
 「麦麦智配」是为 **M-CODE 2026 麦当劳程序员创意开发大赛** 开发的参赛项目。它以麦当劳中国官方 MCP Server（`mcp.mcd.cn`）为唯一数据底座，提供七大决策模块，并通过程序化 3D 品牌视觉（Three.js 金拱门舞台）强化传播力。
 
@@ -67,10 +69,10 @@ python -m http.server 8080
 
 ## 验证链
 
-改任何东西之后，两条检查都要跑（共 **54 项断言**）：
+改任何东西之后，两条检查都要跑（共 **59 项断言**）：
 
 ```bash
-node tests/check_page.mjs        # 页面结构与数据自检（46 项）
+node tests/check_page.mjs        # 页面结构与数据自检（51 项）
 python tests/test_data_pipeline.py  # 数据管道幂等性测试（8 项）
 ```
 
@@ -96,11 +98,11 @@ python tests/test_data_pipeline.py  # 数据管道幂等性测试（8 项）
 ```
 mcd-smart-planner/
 ├── index.html                 # 看板主程序（自包含，SEED 数据内联，零本地依赖）
-├── assets/                    # 品牌 SVG、3D 预览图、M 轮廓数据
+├── assets/                    # 品牌 SVG、页面预览图、M 轮廓数据
 ├── data/seed-data.json        # 从麦当劳 MCP 实测抓取的种子数据（单店快照）
 ├── scripts/                   # 数据处理与构建脚本（Python）
 ├── tests/
-│   ├── check_page.mjs         # 页面结构与数据自检（46 项）
+│   ├── check_page.mjs         # 页面结构与数据自检（51 项）
 │   └── test_data_pipeline.py  # 数据管道幂等性测试（8 项）
 ├── skills/mcd-smart-planner/  # 配套 WorkBuddy Skill 包
 ├── vendor/                    # 本地化 Three.js r128 及后期处理扩展

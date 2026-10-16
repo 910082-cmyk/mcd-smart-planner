@@ -186,6 +186,21 @@ ok(/calculate-price/.test(html) && /未调用/.test(html), '页面明示金额�
 ok(/不提供门店实时客流/.test(html), '页面明示门店推荐的能力边界（无实时客流数据）');
 ok(/create-order/.test(html) && /下单前必做/.test(html), '页面引导下单前回验与确认（看板不创建订单）');
 
+/* ================= 5. README 引用完整性 ================= */
+section('README 引用完整性');
+try {
+  const readme = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
+  const refs = [...readme.matchAll(/\]\((assets\/[^)]+)\)/g)].map(m => m[1]);
+  ok(refs.length >= 2, 'README 至少引用 2 处 assets 资源（主视觉 + 长图）', '实际 ' + refs.length);
+  const missingRefs = refs.filter(r => !fs.existsSync(path.join(ROOT, r)));
+  ok(missingRefs.length === 0, 'README 引用的 assets 文件全部存在', '缺失: ' + missingRefs.join(','));
+  for (const doc of ['CONTEST_DECLARATION.md', 'MCP_INTEGRATION.md', 'workbuddy.md']) {
+    ok(readme.includes(doc), 'README 链接受必需文档 ' + doc);
+  }
+} catch (e) {
+  ok(false, 'README 可读取', e.message);
+}
+
 /* ---------- 汇总 ---------- */
 console.log('\n========================================');
 console.log(`通过 ${pass} 项，失败 ${fail} 项`);
